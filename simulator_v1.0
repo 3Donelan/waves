@@ -1,0 +1,2144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Wave Simulation - Point Editor</title>
+<style>
+:root {
+    /* Colors */
+    --color-primary: #00ff88;
+    --color-secondary: #0088ff;
+    --color-danger: #ff4444;
+    --color-warning: #ff8844;
+    --color-pattern: #8a2be2;
+    
+    /* UI Colors */
+    --bg-primary: rgba(20, 20, 20, 0.95);
+    --bg-secondary: rgba(255, 255, 255, 0.05);
+    --bg-button: rgba(255, 255, 255, 0.1);
+    --bg-button-hover: rgba(255, 255, 255, 0.2);
+    --bg-button-active: rgba(255, 255, 255, 0.3);
+    --border-primary: rgba(255, 255, 255, 0.1);
+    --border-secondary: rgba(255, 255, 255, 0.2);
+    --text-primary: white;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --text-muted: rgba(255, 255, 255, 0.5);
+    
+    /* Spacing */
+    --spacing-xs: 5px;
+    --spacing-sm: 10px;
+    --spacing-md: 15px;
+    --spacing-lg: 20px;
+    --spacing-xl: 30px;
+    
+    /* Sizes */
+    --control-height: 44px;
+    --slider-height: 6px;
+    --thumb-size: 20px;
+    --point-radius: 6px;
+    --select-radius: 20px;
+    
+    /* Animation */
+    --transition-fast: 0.2s ease;
+    --transition-normal: 0.3s ease;
+    --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow: hidden;
+    background: #000;
+}
+
+/* Canvas */
+#canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    cursor: crosshair;
+    touch-action: none;
+}
+
+/* Visual Indicators */
+.visual-indicator {
+    position: fixed;
+    pointer-events: none;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    z-index: 1000;
+}
+
+.long-press-indicator {
+    width: 60px;
+    height: 60px;
+    border: 2px solid rgba(0, 255, 136, 0.6);
+}
+
+.long-press-indicator.active {
+    animation: longPressGrow 0.5s ease-out forwards;
+}
+
+.long-press-indicator.complete {
+    animation: fadeOut 0.3s ease-out forwards;
+}
+
+.clone-flash {
+    width: 80px;
+    height: 80px;
+    border: 3px solid var(--color-secondary);
+    animation: pulseOut 0.5s ease-out;
+}
+
+/* Animations */
+@keyframes longPressGrow {
+    from {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.2);
+        border-color: var(--color-primary);
+        box-shadow: 0 0 20px rgba(0, 255, 136, 0.6);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.2);
+    }
+    to {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.5);
+    }
+}
+
+@keyframes pulseOut {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(2);
+    }
+}
+
+/* Menu Toggle */
+.menu-toggle {
+    position: fixed;
+    top: var(--spacing-lg);
+    right: var(--spacing-lg);
+    z-index: 1000;
+    width: 50px;
+    height: 50px;
+    background: var(--bg-button);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border-secondary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition-normal);
+}
+
+.menu-toggle:hover {
+    background: var(--bg-button-hover);
+}
+
+.menu-icon {
+    width: 24px;
+    height: 18px;
+    position: relative;
+}
+
+.menu-icon span {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background: var(--text-primary);
+    margin: 4px 0;
+    transition: var(--transition-normal);
+}
+
+.menu-toggle.active .menu-icon span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+}
+
+.menu-toggle.active .menu-icon span:nth-child(2) {
+    opacity: 0;
+}
+
+.menu-toggle.active .menu-icon span:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -6px);
+}
+
+/* Control Panel */
+.control-panel {
+    position: fixed;
+    top: 0;
+    right: -360px;
+    width: 360px;
+    height: 100vh;
+    background: var(--bg-primary);
+    backdrop-filter: blur(20px);
+    border-left: 1px solid var(--border-primary);
+    z-index: 999;
+    transition: right var(--transition-slow);
+    overflow-y: auto;
+    color: var(--text-primary);
+}
+
+.control-panel.open {
+    right: 0;
+}
+
+.panel-header {
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.panel-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.panel-subtitle {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.control-section {
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.section-title {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: var(--spacing-md);
+    opacity: 0.9;
+}
+
+/* Form Controls */
+.control-group {
+    margin-bottom: var(--spacing-lg);
+}
+
+.control-label {
+    display: block;
+    font-size: 12px;
+    margin-bottom: 8px;
+    opacity: 0.8;
+}
+
+.select-input {
+    width: 100%;
+    padding: 8px;
+    background: var(--bg-button);
+    border: 1px solid var(--border-secondary);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.select-input:hover {
+    background: var(--bg-button-hover);
+}
+
+.select-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.slider-container {
+    position: relative;
+}
+
+.slider {
+    width: 100%;
+    height: var(--slider-height);
+    background: var(--bg-button);
+    border-radius: 3px;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.slider::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: var(--thumb-size);
+    height: var(--thumb-size);
+    background: var(--text-primary);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.slider::-moz-range-thumb {
+    width: var(--thumb-size);
+    height: var(--thumb-size);
+    background: var(--text-primary);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.slider-value {
+    position: absolute;
+    right: 0;
+    top: -25px;
+    font-size: 11px;
+    background: var(--bg-button);
+    padding: 2px 6px;
+    border-radius: 3px;
+    min-width: 35px;
+    text-align: center;
+}
+
+/* Buttons */
+.button-group {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.control-button {
+    flex: 1;
+    min-width: 80px;
+    padding: 12px 16px;
+    background: var(--bg-button);
+    border: 1px solid var(--border-secondary);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.control-button:hover {
+    background: var(--bg-button-hover);
+}
+
+.control-button:active {
+    transform: scale(0.98);
+}
+
+.control-button.active {
+    background: var(--bg-button-active);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Button Variants */
+.control-button.primary {
+    background: rgba(0, 255, 136, 0.2);
+    border-color: rgba(0, 255, 136, 0.4);
+}
+
+.control-button.primary:hover {
+    background: rgba(0, 255, 136, 0.3);
+}
+
+.control-button.secondary {
+    background: rgba(0, 136, 255, 0.2);
+    border-color: rgba(0, 136, 255, 0.4);
+}
+
+.control-button.secondary:hover {
+    background: rgba(0, 136, 255, 0.3);
+}
+
+.control-button.danger {
+    background: rgba(255, 68, 68, 0.2);
+    border-color: rgba(255, 68, 68, 0.4);
+}
+
+.control-button.danger:hover {
+    background: rgba(255, 68, 68, 0.3);
+}
+
+.control-button.pattern {
+    background: rgba(138, 43, 226, 0.2);
+    border-color: rgba(138, 43, 226, 0.4);
+}
+
+.control-button.pattern:hover {
+    background: rgba(138, 43, 226, 0.3);
+}
+
+/* Status & Info */
+.info-text {
+    font-size: 11px;
+    opacity: 0.6;
+    margin-top: var(--spacing-sm);
+}
+
+.stats-text {
+    font-size: 10px;
+    opacity: 0.5;
+    margin-top: 5px;
+    font-family: monospace;
+}
+
+/* Point Management */
+.point-section {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.point-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.point-id {
+    font-size: 12px;
+    opacity: 0.7;
+    font-family: monospace;
+}
+
+.point-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--border-primary);
+    border-radius: 5px;
+}
+
+.point-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    font-size: 12px;
+}
+
+.point-item:hover {
+    background: var(--bg-button);
+}
+
+.point-item.selected {
+    background: var(--bg-button-hover);
+}
+
+.empty-state {
+    text-align: center;
+    opacity: 0.5;
+    font-size: 12px;
+    padding: var(--spacing-lg);
+}
+
+/* Overlays */
+.panel-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 998;
+    opacity: 0;
+    visibility: hidden;
+    transition: var(--transition-normal);
+}
+
+.panel-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Welcome Modal */
+.welcome-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-lg);
+}
+
+.welcome-modal {
+    background: var(--bg-primary);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-secondary);
+    border-radius: 16px;
+    max-width: 500px;
+    width: 100%;
+    color: var(--text-primary);
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.welcome-header {
+    padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-lg);
+    text-align: center;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.welcome-header h2 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.welcome-header p {
+    font-size: 14px;
+    opacity: 0.7;
+    margin: 0;
+}
+
+.welcome-content {
+    padding: 25px var(--spacing-xl);
+}
+
+.instruction-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.instruction-item {
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border-left: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.instruction-item strong {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.welcome-footer {
+    padding: var(--spacing-lg) var(--spacing-xl) var(--spacing-xl);
+    text-align: center;
+}
+
+.welcome-button {
+    background: linear-gradient(135deg, var(--color-primary), #00cc6a);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 16px 32px;
+    cursor: pointer;
+    transition: var(--transition-normal);
+    box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+}
+
+.welcome-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4);
+}
+
+.welcome-button:active {
+    transform: translateY(0);
+}
+
+/* Responsive Design */
+@media (min-width: 768px) {
+    .menu-toggle {
+        top: var(--spacing-xl);
+        right: var(--spacing-xl);
+        width: 60px;
+        height: 60px;
+    }
+    
+    .control-panel {
+        width: 400px;
+        right: -400px;
+    }
+    
+    .control-section {
+        padding: 25px;
+    }
+}
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+
+<!-- Visual Indicators -->
+<div class="visual-indicator long-press-indicator" id="longPressIndicator"></div>
+
+<!-- Welcome Modal -->
+<div class="welcome-overlay" id="welcomeOverlay">
+    <div class="welcome-modal">
+        <div class="welcome-header">
+            <h2>Wave Physics Simulation</h2>
+            <p>Interactive wave interference patterns</p>
+        </div>
+        <div class="welcome-content">
+            <div class="instruction-list">
+                <div class="instruction-item">
+                    <strong>Create waves:</strong> Press and hold on empty space to add wave sources
+                </div>
+                <div class="instruction-item">
+                    <strong>Generate patterns:</strong> Use Pattern Generator for mathematical layouts
+                </div>
+                <div class="instruction-item">
+                    <strong>Manipulate:</strong> Select, move, clone, and customize wave points
+                </div>
+                <div class="instruction-item">
+                    <strong>Visualize:</strong> Watch interference patterns form in real-time
+                </div>
+            </div>
+        </div>
+        <div class="welcome-footer">
+            <button class="welcome-button" id="welcomeStartBtn">Get Started</button>
+        </div>
+    </div>
+</div>
+
+<!-- Menu Toggle -->
+<button class="menu-toggle" id="menuToggle">
+    <div class="menu-icon">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+</button>
+
+<!-- Control Panel -->
+<div class="panel-overlay" id="panelOverlay"></div>
+<div class="control-panel" id="controlPanel">
+    <div class="panel-header">
+        <div class="panel-title">Wave Point Editor</div>
+        <div class="panel-subtitle">Press and hold on canvas to add points</div>
+    </div>
+    
+    <!-- Animation Controls -->
+    <div class="control-section">
+        <div class="section-title">Animation</div>
+        <div class="button-group">
+            <button class="control-button" id="clearBtn">Clear All</button>
+            <button class="control-button" id="playPauseBtn">Pause</button>
+            <button class="control-button" id="syncBtn">Sync</button>
+        </div>
+        <div class="button-group" style="margin-top: 10px;">
+            <button class="control-button" id="showPointsBtn">Show Points</button>
+            <button class="control-button" id="animatePointsBtn">Animate Points</button>
+        </div>
+        <div class="info-text" id="stats">Points: 0</div>
+    </div>
+    
+    <!-- Pattern Generator -->
+    <div class="control-section">
+        <div class="section-title">Pattern Generator</div>
+        <div class="control-group">
+            <label class="control-label">Pattern Type</label>
+            <select id="patternType" class="select-input">
+                <option value="grid">Grid</option>
+                <option value="radial">Radial</option>
+                <option value="spiral">Spiral</option>
+                <option value="sunflower">Sunflower</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label class="control-label">Number of Points</label>
+            <div class="slider-container">
+                <input type="range" class="slider" id="patternCount" min="4" max="36" step="1" value="16">
+                <div class="slider-value" id="patternCountValue">16</div>
+            </div>
+        </div>
+        <div class="button-group">
+            <button class="control-button pattern" id="generatePatternBtn">Generate Pattern</button>
+        </div>
+        <div class="info-text">Replaces existing points</div>
+    </div>
+    
+    <!-- Point List -->
+    <div class="control-section">
+        <div class="section-title">Point List</div>
+        <div class="point-list" id="pointList">
+            <div class="empty-state">No points created</div>
+        </div>
+    </div>
+    
+    <!-- Selected Point Controls -->
+    <div class="control-section" id="selectedPointSection" style="display: none;">
+        <div class="section-title">Selected Point</div>
+        <div class="point-section">
+            <div class="point-header">
+                <span class="point-id" id="selectedPointId">Point #1</span>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">Wave Type</label>
+                <div class="button-group">
+                    <button class="control-button active" id="pointWaveTypeBtn">Sine</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">Strength</label>
+                <div class="slider-container">
+                    <input type="range" class="slider" id="pointStrength" min="10" max="100" step="5" value="60">
+                    <div class="slider-value" id="pointStrengthValue">60</div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">Frequency</label>
+                <div class="slider-container">
+                    <input type="range" class="slider" id="pointFrequency" min="0.005" max="0.08" step="0.005" value="0.02">
+                    <div class="slider-value" id="pointFrequencyValue">0.020</div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">Speed</label>
+                <div class="slider-container">
+                    <input type="range" class="slider" id="pointSpeed" min="0.1" max="1.0" step="0.1" value="1.0">
+                    <div class="slider-value" id="pointSpeedValue">1.0</div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">Velocity</label>
+                <div class="slider-container">
+                    <input type="range" class="slider" id="pointVelocity" min="0" max="50" step="5" value="0">
+                    <div class="slider-value" id="pointVelocityValue">0</div>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button class="control-button secondary" id="clonePointBtn">Clone Point</button>
+                <button class="control-button danger" id="deletePointBtn">Delete Point</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Medium Properties -->
+    <div class="control-section">
+        <div class="section-title">Medium Properties</div>
+        <div class="control-group">
+            <label class="control-label">Wave Fade</label>
+            <div class="slider-container">
+                <input type="range" class="slider" id="fadeSlider" min="0.0" max="0.03" step="0.002" value="0.008">
+                <div class="slider-value" id="fadeValue">0.008</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Color Settings -->
+    <div class="control-section">
+        <div class="section-title">Color Settings</div>
+        <div class="control-group">
+            <label class="control-label">Color Mode</label>
+            <div class="button-group">
+                <button class="control-button active" id="colorModeBtn">Grayscale</button>
+            </div>
+        </div>
+        
+        <div class="control-group" id="colorControls" style="display: none;">
+            <label class="control-label">Minima Color (Hue)</label>
+            <div class="slider-container">
+                <input type="range" class="slider" id="hue1Slider" min="0" max="360" step="1" value="240">
+                <div class="slider-value" id="hue1Value">240°</div>
+            </div>
+        </div>
+        
+        <div class="control-group" id="colorControls2" style="display: none;">
+            <label class="control-label">Maxima Color (Hue)</label>
+            <div class="slider-container">
+                <input type="range" class="slider" id="hue2Slider" min="0" max="360" step="1" value="0">
+                <div class="slider-value" id="hue2Value">0°</div>
+            </div>
+        </div>
+        
+        <div class="button-group" id="colorButtons" style="display: none;">
+            <button class="control-button" id="complementaryBtn">Complementary</button>
+        </div>
+        
+        <div class="control-group" id="colorPreview" style="display: none;">
+            <label class="control-label">Color Preview</label>
+            <div id="gradientPreview" style="width: 100%; height: 20px; border-radius: 4px; background: linear-gradient(to right, hsl(240, 70%, 50%), hsl(0, 70%, 50%)); border: 1px solid rgba(255, 255, 255, 0.2);"></div>
+        </div>
+    </div>
+    
+    <!-- Performance Settings -->
+    <div class="control-section">
+        <div class="section-title">Performance</div>
+        <div class="control-group">
+            <label class="control-label">Resolution</label>
+            <div class="slider-container">
+                <input type="range" class="slider" id="performanceSlider" min="0" max="5" step="1" value="1">
+                <div class="slider-value" id="performanceValue">Balanced</div>
+            </div>
+            <div class="stats-text" id="performanceInfo">Resolution: calculating...</div>
+        </div>
+        
+        <div class="control-group">
+            <label class="control-label">Frame Rate</label>
+            <div class="slider-container">
+                <input type="range" class="slider" id="fpsSlider" min="15" max="60" step="15" value="30">
+                <div class="slider-value" id="fpsValue">30 FPS</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+'use strict';
+
+// ===== CONFIGURATION =====
+const CONFIG = Object.freeze({
+    wave: {
+        maxAmplitude: 100,
+        timeStep: 0.2,
+        defaults: {
+            strength: 60,
+            frequency: 0.02,
+            speed: 1.0,
+            waveType: 'sine',
+            velocity: 0
+        }
+    },
+    performance: {
+        levels: [
+            { skip: 1, label: 'Quality' },
+            { skip: 2, label: 'Balanced' },
+            { skip: 4, label: 'Fast' },
+            { skip: 8, label: 'Faster' },
+            { skip: 16, label: 'Very Fast' },
+            { skip: 32, label: 'Ultra Fast' }
+        ],
+        default: 1
+    },
+    colors: {
+        hue1: 240,
+        hue2: 0,
+        saturation: 70,
+        lightness: 50,
+        useColor: false
+    },
+    medium: {
+        fade: 0.008
+    },
+    interaction: {
+        pointRadius: 20,
+        visualRadius: 6,
+        dragThreshold: 5,
+        longPressTime: 500,
+        moveThreshold: 10,
+        cloneMargin: 30,
+        cloneMinDistance: 40,
+        patternMargin: 50
+    },
+    animation: {
+        targetFPS: 30,
+        minFPS: 15,
+        maxFPS: 60
+    },
+    ui: {
+        sliders: {
+            pointStrength: { min: 10, max: 100, step: 5, decimals: 0 },
+            pointFrequency: { min: 0.005, max: 0.08, step: 0.005, decimals: 3 },
+            pointSpeed: { min: 0.1, max: 1.0, step: 0.1, decimals: 1 },
+            pointVelocity: { min: 0, max: 50, step: 5, decimals: 0 }
+        }
+    }
+});
+
+// ===== UTILITIES MODULE =====
+const Utils = {
+    math: {
+        clamp: (val, min, max) => Math.max(min, Math.min(max, val)),
+        distance: (x1, y1, x2, y2) => Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2),
+        formatValue: (val, decimals = 3) => Number(val).toFixed(decimals)
+    },
+    
+    id: {
+        generate: () => `point_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    },
+    
+    feedback: {
+        haptic: () => {
+            if ('vibrate' in navigator) {
+                navigator.vibrate(10);
+            }
+        },
+        
+        visual: (x, y, className, duration = 500) => {
+            const element = document.createElement('div');
+            element.className = `visual-indicator ${className}`;
+            element.style.left = `${x}px`;
+            element.style.top = `${y}px`;
+            document.body.appendChild(element);
+            setTimeout(() => element.remove(), duration);
+            return element;
+        }
+    },
+    
+    color: {
+        lerpHue: (hue1, hue2, t) => {
+            let diff = Math.abs(hue1 - hue2);
+            if (diff > 180) {
+                if (hue2 > hue1) hue1 += 360;
+                else hue2 += 360;
+            }
+            return Math.round((hue1 + (hue2 - hue1) * t) % 360);
+        },
+        
+        hslToRgb: (h, s, l) => {
+            h /= 360;
+            s /= 100;
+            l /= 100;
+            const c = (1 - Math.abs(2 * l - 1)) * s;
+            const x = c * (1 - Math.abs((h * 6) % 2 - 1));
+            const m = l - c / 2;
+            
+            let r, g, b;
+            if (h < 1/6) [r, g, b] = [c, x, 0];
+            else if (h < 2/6) [r, g, b] = [x, c, 0];
+            else if (h < 3/6) [r, g, b] = [0, c, x];
+            else if (h < 4/6) [r, g, b] = [0, x, c];
+            else if (h < 5/6) [r, g, b] = [x, 0, c];
+            else [r, g, b] = [c, 0, x];
+            
+            return {
+                r: Math.round((r + m) * 255),
+                g: Math.round((g + m) * 255),
+                b: Math.round((b + m) * 255)
+            };
+        }
+    }
+};
+
+// ===== BASE CLASSES =====
+class EventEmitter {
+    constructor() {
+        this.listeners = new Map();
+    }
+    
+    on(event, callback) {
+        if (!this.listeners.has(event)) {
+            this.listeners.set(event, []);
+        }
+        this.listeners.get(event).push(callback);
+        return this;
+    }
+    
+    emit(event, data) {
+        const callbacks = this.listeners.get(event);
+        if (callbacks) {
+            callbacks.forEach(cb => cb(data));
+        }
+        return this;
+    }
+}
+
+// ===== PHYSICS MODULE =====
+const Physics = {
+    updatePosition(point, deltaTime, bounds) {
+        if (point.velocity === 0) return;
+        
+        point.x += point.vx * deltaTime;
+        point.y += point.vy * deltaTime;
+        
+        const margin = CONFIG.interaction.visualRadius;
+        
+        // Boundary collision
+        if (point.x <= margin || point.x >= bounds.width - margin) {
+            point.vx = point.x <= margin ? Math.abs(point.vx) : -Math.abs(point.vx);
+            point.x = Utils.math.clamp(point.x, margin, bounds.width - margin);
+        }
+        
+        if (point.y <= margin || point.y >= bounds.height - margin) {
+            point.vy = point.y <= margin ? Math.abs(point.vy) : -Math.abs(point.vy);
+            point.y = Utils.math.clamp(point.y, margin, bounds.height - margin);
+        }
+    },
+    
+    setRandomVelocity(point, speed) {
+        if (speed > 0) {
+            const angle = Math.random() * 2 * Math.PI;
+            point.vx = Math.cos(angle) * speed;
+            point.vy = Math.sin(angle) * speed;
+        } else {
+            point.vx = point.vy = 0;
+        }
+    },
+    
+    findRandomPosition(points, bounds) {
+        const { cloneMargin: margin, cloneMinDistance: minDist } = CONFIG.interaction;
+        const maxAttempts = 50;
+        
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            const x = margin + Math.random() * (bounds.width - 2 * margin);
+            const y = margin + Math.random() * (bounds.height - 2 * margin);
+            
+            const tooClose = Array.from(points).some(point => 
+                Utils.math.distance(x, y, point.x, point.y) < minDist
+            );
+            
+            if (!tooClose) return { x, y };
+        }
+        
+        return {
+            x: margin + Math.random() * (bounds.width - 2 * margin),
+            y: margin + Math.random() * (bounds.height - 2 * margin)
+        };
+    }
+};
+
+// ===== WAVE MATHEMATICS =====
+const WaveMath = {
+    sine: (phase, amplitude) => amplitude * Math.sin(phase),
+    
+    step: (phase, amplitude) => {
+        const normalized = ((phase % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI);
+        return amplitude * (normalized < Math.PI ? 1 : -1);
+    },
+    
+    applyFade: (value, distance, fadeRate) => value * Math.exp(-distance * fadeRate),
+    
+    toColor(waveValue, colorSettings) {
+        if (!colorSettings.useColor) {
+            const normalized = waveValue / CONFIG.wave.maxAmplitude;
+            return Utils.math.clamp(128 + normalized * 127, 0, 255);
+        }
+        
+        const normalizedValue = Utils.math.clamp(
+            (waveValue / CONFIG.wave.maxAmplitude + 1) / 2, 0, 1
+        );
+        const interpolatedHue = Utils.color.lerpHue(
+            colorSettings.hue1, colorSettings.hue2, normalizedValue
+        );
+        return Utils.color.hslToRgb(
+            interpolatedHue, colorSettings.saturation, colorSettings.lightness
+        );
+    }
+};
+
+// ===== PATTERN GENERATOR =====
+const PatternGenerator = {
+    patterns: {
+        grid(count, cx, cy, maxRadius) {
+            const points = [];
+            const gridSize = Math.ceil(Math.sqrt(count));
+            const spacing = (maxRadius * 2) / (gridSize + 1);
+            const startX = cx - (gridSize - 1) * spacing / 2;
+            const startY = cy - (gridSize - 1) * spacing / 2;
+            
+            for (let i = 0; i < gridSize * gridSize && points.length < count; i++) {
+                const row = Math.floor(i / gridSize);
+                const col = i % gridSize;
+                points.push({
+                    x: startX + col * spacing,
+                    y: startY + row * spacing
+                });
+            }
+            return points;
+        },
+        
+        radial(count, cx, cy, maxRadius) {
+            const points = [];
+            const rings = Math.min(4, Math.ceil(count / 8));
+            const pointsPerRing = Math.ceil(count / rings);
+            
+            for (let ring = 0; ring < rings; ring++) {
+                const radius = ((ring + 1) / rings) * maxRadius;
+                const ringCount = Math.min(pointsPerRing, count - points.length);
+                
+                for (let i = 0; i < ringCount; i++) {
+                    const angle = (i / ringCount) * 2 * Math.PI - Math.PI / 2;
+                    points.push({
+                        x: cx + radius * Math.cos(angle),
+                        y: cy + radius * Math.sin(angle)
+                    });
+                }
+            }
+            return points;
+        },
+        
+        spiral(count, cx, cy, maxRadius) {
+            const points = [];
+            const maxAngle = 4 * Math.PI;
+            
+            for (let i = 0; i < count; i++) {
+                const t = (i / count) * maxAngle;
+                const radius = (t / maxAngle) * maxRadius;
+                points.push({
+                    x: cx + radius * Math.cos(t),
+                    y: cy + radius * Math.sin(t)
+                });
+            }
+            return points;
+        },
+        
+        sunflower(count, cx, cy, maxRadius) {
+            const points = [];
+            const golden = Math.PI * (3 - Math.sqrt(5));
+            
+            for (let i = 0; i < count; i++) {
+                const theta = i * golden;
+                const radius = Math.sqrt(i / count) * maxRadius;
+                points.push({
+                    x: cx + radius * Math.cos(theta),
+                    y: cy + radius * Math.sin(theta)
+                });
+            }
+            return points;
+        }
+    },
+    
+    generate(type, count, bounds) {
+        const cx = bounds.width / 2;
+        const cy = bounds.height / 2;
+        const maxRadius = Math.min(bounds.width, bounds.height) / 2 - CONFIG.interaction.patternMargin;
+        
+        const generator = this.patterns[type];
+        return generator ? generator(count, cx, cy, maxRadius) : [];
+    }
+};
+
+// ===== WAVE POINT =====
+class WavePoint {
+    constructor(x, y, properties = {}) {
+        this.id = Utils.id.generate();
+        this.x = x;
+        this.y = y;
+        this.startTime = 0;
+        this.selected = false;
+        this.vx = 0;
+        this.vy = 0;
+        
+        Object.assign(this, CONFIG.wave.defaults, properties);
+        
+        if (this.velocity > 0) {
+            Physics.setRandomVelocity(this, this.velocity);
+        }
+    }
+    
+    getProperties() {
+        return {
+            strength: this.strength,
+            frequency: this.frequency,
+            speed: this.speed,
+            waveType: this.waveType,
+            velocity: this.velocity
+        };
+    }
+    
+    updateVelocity(newVelocity) {
+        const oldVelocity = this.velocity;
+        this.velocity = newVelocity;
+        
+        if (newVelocity === 0) {
+            this.vx = this.vy = 0;
+        } else if (oldVelocity === 0) {
+            Physics.setRandomVelocity(this, newVelocity);
+        } else {
+            const scale = newVelocity / oldVelocity;
+            this.vx *= scale;
+            this.vy *= scale;
+        }
+    }
+    
+    updateProperty(key, value) {
+        if (key === 'velocity') {
+            this.updateVelocity(value);
+        } else if (key in CONFIG.wave.defaults) {
+            this[key] = value;
+        } else {
+            return false;
+        }
+        return true;
+    }
+    
+    distanceTo(x, y) {
+        return Utils.math.distance(this.x, this.y, x, y);
+    }
+    
+    isHit(x, y) {
+        return this.distanceTo(x, y) <= CONFIG.interaction.pointRadius;
+    }
+    
+    getDisplayName() {
+        return `Point ${this.id.split('_')[1].slice(-3)}`;
+    }
+}
+
+// ===== MANAGERS =====
+class PointManager extends EventEmitter {
+    constructor() {
+        super();
+        this.points = new Map();
+        this.selectedId = null;
+    }
+    
+    add(x, y, properties = {}) {
+        const point = new WavePoint(x, y, properties);
+        this.points.set(point.id, point);
+        this.emit('change', { type: 'add', point });
+        return point;
+    }
+    
+    remove(id) {
+        if (this.selectedId === id) this.selectedId = null;
+        const removed = this.points.delete(id);
+        if (removed) this.emit('change', { type: 'remove', id });
+        return removed;
+    }
+    
+    clear() {
+        this.points.clear();
+        this.selectedId = null;
+        this.emit('change', { type: 'clear' });
+    }
+    
+    select(id) {
+        const prevId = this.selectedId;
+        if (prevId) {
+            const prev = this.points.get(prevId);
+            if (prev) prev.selected = false;
+        }
+        
+        this.selectedId = id;
+        const point = this.points.get(id);
+        if (point) {
+            point.selected = true;
+            this.emit('select', point);
+        }
+        return point;
+    }
+    
+    deselect() {
+        if (this.selectedId) {
+            const point = this.points.get(this.selectedId);
+            if (point) point.selected = false;
+            this.selectedId = null;
+            this.emit('select', null);
+        }
+    }
+    
+    getSelected() {
+        return this.selectedId ? this.points.get(this.selectedId) : null;
+    }
+    
+    findPointAt(x, y) {
+        for (const point of this.points.values()) {
+            if (point.isHit(x, y)) return point;
+        }
+        return null;
+    }
+    
+    updatePositions(deltaTime, bounds) {
+        for (const point of this.points.values()) {
+            Physics.updatePosition(point, deltaTime, bounds);
+        }
+    }
+    
+    getAllPoints() {
+        return Array.from(this.points.values());
+    }
+    
+    get count() {
+        return this.points.size;
+    }
+    
+    [Symbol.iterator]() {
+        return this.points.values();
+    }
+}
+
+class AppState extends EventEmitter {
+    constructor() {
+        super();
+        this.state = {
+            time: 0,
+            isAnimating: false,
+            showPoints: false,
+            animatePoints: false,
+            mediumFade: CONFIG.medium.fade,
+            performanceLevel: CONFIG.performance.default,
+            ...CONFIG.colors
+        };
+        
+        this.animation = {
+            targetFPS: CONFIG.animation.targetFPS,
+            frameInterval: 1000 / CONFIG.animation.targetFPS,
+            lastFrameTime: 0
+        };
+    }
+    
+    set(key, value) {
+        if (this.state[key] !== value) {
+            this.state[key] = value;
+            this.emit('change', { key, value });
+        }
+    }
+    
+    get(key) {
+        return this.state[key];
+    }
+    
+    setFPS(fps) {
+        this.animation.targetFPS = Utils.math.clamp(
+            fps, CONFIG.animation.minFPS, CONFIG.animation.maxFPS
+        );
+        this.animation.frameInterval = 1000 / this.animation.targetFPS;
+        this.emit('change', { key: 'fps', value: this.animation.targetFPS });
+    }
+    
+    incrementTime() {
+        this.state.time += CONFIG.wave.timeStep;
+    }
+    
+    resetTime() {
+        this.state.time = 0;
+    }
+    
+    shouldRender(currentTime) {
+        return this.state.isAnimating && 
+               (currentTime - this.animation.lastFrameTime) >= this.animation.frameInterval;
+    }
+    
+    getColorSettings() {
+        return {
+            useColor: this.state.useColor,
+            hue1: this.state.hue1,
+            hue2: this.state.hue2,
+            saturation: this.state.saturation,
+            lightness: this.state.lightness
+        };
+    }
+}
+
+// ===== RENDERERS =====
+class WaveFieldRenderer {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.skipFactor = CONFIG.performance.levels[CONFIG.performance.default].skip;
+        this.resize();
+    }
+    
+    resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        this.imageData = this.ctx.createImageData(this.canvas.width, this.canvas.height);
+    }
+    
+    setPerformanceLevel(level) {
+        this.skipFactor = CONFIG.performance.levels[level].skip;
+    }
+    
+    render(points, mediumFade, time, colorSettings) {
+        this.clearCanvas();
+        if (points.count > 0) {
+            this.renderWaveField(points, mediumFade, time, colorSettings);
+        }
+        this.ctx.putImageData(this.imageData, 0, 0);
+    }
+    
+    clearCanvas() {
+        const data = this.imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+            data[i] = data[i + 1] = data[i + 2] = 0;
+            data[i + 3] = 255;
+        }
+    }
+    
+    renderWaveField(points, mediumFade, time, colorSettings) {
+        const { width, height } = this.canvas;
+        const skip = this.skipFactor;
+        
+        for (let y = 0; y < height; y += skip) {
+            for (let x = 0; x < width; x += skip) {
+                const color = this.calculatePixel(x, y, points, mediumFade, time, colorSettings);
+                this.fillBlock(x, y, color, skip);
+            }
+        }
+    }
+    
+    calculatePixel(x, y, points, mediumFade, time, colorSettings) {
+        let totalWave = 0;
+        
+        for (const point of points) {
+            const age = time - point.startTime;
+            if (age < 0) continue;
+            
+            const distance = point.distanceTo(x, y);
+            const phase = point.frequency * distance - point.speed * age;
+            
+            const waveFunc = point.waveType === 'sine' ? WaveMath.sine : WaveMath.step;
+            let waveValue = waveFunc(phase, point.strength);
+            waveValue = WaveMath.applyFade(waveValue, distance, mediumFade);
+            
+            totalWave += waveValue;
+        }
+        
+        return WaveMath.toColor(totalWave, colorSettings);
+    }
+    
+    fillBlock(startX, startY, color, size) {
+        const data = this.imageData.data;
+        const { width, height } = this.canvas;
+        
+        for (let dy = 0; dy < size && startY + dy < height; dy++) {
+            for (let dx = 0; dx < size && startX + dx < width; dx++) {
+                const index = ((startY + dy) * width + (startX + dx)) * 4;
+                
+                if (typeof color === 'object') {
+                    data[index] = color.r;
+                    data[index + 1] = color.g;
+                    data[index + 2] = color.b;
+                } else {
+                    data[index] = data[index + 1] = data[index + 2] = color;
+                }
+            }
+        }
+    }
+}
+
+class PointRenderer {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+    }
+    
+    render(points, showPoints) {
+        const selected = points.getSelected();
+        
+        if (showPoints) {
+            for (const point of points) {
+                this.drawPoint(point);
+            }
+        } else if (selected) {
+            this.drawPoint(selected);
+        }
+    }
+    
+    drawPoint(point) {
+        const { visualRadius, pointRadius } = CONFIG.interaction;
+        
+        if (point.selected) {
+            this.ctx.strokeStyle = '#00ff88';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.arc(point.x, point.y, pointRadius, 0, 2 * Math.PI);
+            this.ctx.stroke();
+        }
+        
+        this.ctx.fillStyle = point.selected ? '#00ff88' : 
+                             point.velocity > 0 ? '#ff8844' : '#ff4444';
+        this.ctx.beginPath();
+        this.ctx.arc(point.x, point.y, visualRadius, 0, 2 * Math.PI);
+        this.ctx.fill();
+    }
+}
+
+// ===== UI CONTROLLER =====
+class UIController {
+    constructor() {
+        this.elements = new Map();
+        this.panelOpen = false;
+        this.init();
+    }
+    
+    init() {
+        this.cacheElements();
+        this.setupBaseEvents();
+    }
+    
+    cacheElements() {
+        const ids = [
+            'menuToggle', 'panelOverlay', 'controlPanel', 'welcomeOverlay', 'welcomeStartBtn',
+            'clearBtn', 'playPauseBtn', 'syncBtn', 'showPointsBtn', 'animatePointsBtn',
+            'pointList', 'selectedPointSection', 'selectedPointId', 'pointWaveTypeBtn',
+            'pointStrength', 'pointFrequency', 'pointSpeed', 'pointVelocity',
+            'clonePointBtn', 'deletePointBtn', 'fadeSlider', 'fadeValue',
+            'performanceSlider', 'performanceValue', 'performanceInfo', 'fpsSlider', 'fpsValue',
+            'stats', 'colorModeBtn', 'hue1Slider', 'hue2Slider', 'hue1Value', 'hue2Value',
+            'complementaryBtn', 'gradientPreview', 'colorControls', 'colorControls2',
+            'colorButtons', 'colorPreview', 'longPressIndicator',
+            'patternType', 'patternCount', 'patternCountValue', 'generatePatternBtn'
+        ];
+        
+        // Add value display elements
+        Object.keys(CONFIG.ui.sliders).forEach(key => {
+            ids.push(`${key}Value`);
+        });
+        
+        ids.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) this.elements.set(id, element);
+        });
+    }
+    
+    setupBaseEvents() {
+        this.on('menuToggle', 'click', () => this.togglePanel());
+        this.on('panelOverlay', 'click', () => this.closePanel());
+        this.on('welcomeStartBtn', 'click', () => this.hideWelcome());
+        
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && this.panelOpen) {
+                this.closePanel();
+            }
+        });
+    }
+    
+    on(elementId, event, handler) {
+        const element = this.elements.get(elementId);
+        if (element) {
+            element.addEventListener(event, handler);
+        }
+    }
+    
+    get(elementId) {
+        return this.elements.get(elementId);
+    }
+    
+    setText(elementId, text) {
+        const element = this.elements.get(elementId);
+        if (element) element.textContent = String(text);
+    }
+    
+    setValue(elementId, value) {
+        const element = this.elements.get(elementId);
+        if (element && 'value' in element) element.value = value;
+    }
+    
+    togglePanel() {
+        this.panelOpen ? this.closePanel() : this.openPanel();
+    }
+    
+    openPanel() {
+        this.panelOpen = true;
+        this.elements.get('controlPanel')?.classList.add('open');
+        this.elements.get('panelOverlay')?.classList.add('active');
+        this.elements.get('menuToggle')?.classList.add('active');
+    }
+    
+    closePanel() {
+        this.panelOpen = false;
+        this.elements.get('controlPanel')?.classList.remove('open');
+        this.elements.get('panelOverlay')?.classList.remove('active');
+        this.elements.get('menuToggle')?.classList.remove('active');
+    }
+    
+    hideWelcome() {
+        const overlay = this.elements.get('welcomeOverlay');
+        if (overlay) overlay.style.display = 'none';
+    }
+    
+    updateButton(elementId, isActive, activeText, inactiveText) {
+        const btn = this.elements.get(elementId);
+        if (btn) {
+            btn.classList.toggle('active', isActive);
+            btn.textContent = isActive ? activeText : inactiveText;
+        }
+    }
+    
+    updateColorControls(useColor) {
+        ['colorControls', 'colorControls2', 'colorButtons', 'colorPreview'].forEach(id => {
+            const element = this.elements.get(id);
+            if (element) element.style.display = useColor ? 'block' : 'none';
+        });
+        this.updateButton('colorModeBtn', !useColor, 'Grayscale', 'Color');
+    }
+    
+    updateColorPreview(hue1, hue2) {
+        const preview = this.elements.get('gradientPreview');
+        if (preview) {
+            preview.style.background = `linear-gradient(to right, hsl(${hue1}, 70%, 50%), hsl(${hue2}, 70%, 50%))`;
+        }
+        this.setText('hue1Value', `${hue1}°`);
+        this.setText('hue2Value', `${hue2}°`);
+    }
+    
+    updatePointList(points) {
+        const list = this.elements.get('pointList');
+        if (!list) return;
+        
+        if (points.count === 0) {
+            list.innerHTML = '<div class="empty-state">No points created</div>';
+            return;
+        }
+        
+        list.innerHTML = points.getAllPoints().map(point => `
+            <div class="point-item ${point.selected ? 'selected' : ''}" data-id="${point.id}">
+                ${point.getDisplayName()} - ${point.waveType} (${point.strength})
+                ${point.velocity > 0 ? ` • v${point.velocity}` : ''}
+            </div>
+        `).join('');
+    }
+    
+    updateSelectedPoint(point) {
+        const section = this.elements.get('selectedPointSection');
+        if (!section) return;
+        
+        section.style.display = point ? 'block' : 'none';
+        if (!point) return;
+        
+        this.setText('selectedPointId', point.getDisplayName());
+        this.setText('pointWaveTypeBtn', point.waveType === 'sine' ? 'Sine' : 'Digital');
+        
+        Object.entries(CONFIG.ui.sliders).forEach(([key, config]) => {
+            const value = point[key.replace('point', '').toLowerCase()];
+            this.setValue(key, value);
+            this.setText(`${key}Value`, 
+                config.decimals > 0 ? 
+                Utils.math.formatValue(value, config.decimals) : value
+            );
+        });
+        
+        const waveBtn = this.elements.get('pointWaveTypeBtn');
+        if (waveBtn) {
+            waveBtn.className = `control-button ${point.waveType === 'sine' ? 'active' : ''}`;
+        }
+    }
+}
+
+// ===== INTERACTION MANAGER =====
+class InteractionManager {
+    constructor(canvas, simulation) {
+        this.canvas = canvas;
+        this.simulation = simulation;
+        this.state = {
+            isDragging: false,
+            dragPoint: null,
+            startPos: { x: 0, y: 0 },
+            longPressTimer: null,
+            isLongPressing: false
+        };
+        
+        this.indicator = document.getElementById('longPressIndicator');
+        this.setupEvents();
+    }
+    
+    setupEvents() {
+        const options = { passive: false };
+        
+        // Touch events
+        this.canvas.addEventListener('touchstart', e => this.handleStart(e, e.touches[0]), options);
+        this.canvas.addEventListener('touchmove', e => this.handleMove(e, e.touches[0]), options);
+        this.canvas.addEventListener('touchend', e => this.handleEnd(e), options);
+        
+        // Mouse events
+        this.canvas.addEventListener('mousedown', e => this.handleStart(e, e), options);
+        this.canvas.addEventListener('mousemove', e => this.handleMove(e, e), options);
+        this.canvas.addEventListener('mouseup', e => this.handleEnd(e), options);
+        
+        this.canvas.addEventListener('contextmenu', e => e.preventDefault());
+    }
+    
+    getCoordinates(pointer) {
+        const rect = this.canvas.getBoundingClientRect();
+        return {
+            x: Math.floor(pointer.clientX - rect.left),
+            y: Math.floor(pointer.clientY - rect.top)
+        };
+    }
+    
+    startLongPress(x, y) {
+        this.state.isLongPressing = true;
+        
+        if (this.indicator) {
+            this.indicator.style.left = `${x}px`;
+            this.indicator.style.top = `${y}px`;
+            this.indicator.classList.add('active');
+        }
+        
+        this.state.longPressTimer = setTimeout(() => {
+            if (this.state.isLongPressing) {
+                this.completeLongPress(x, y);
+            }
+        }, CONFIG.interaction.longPressTime);
+    }
+    
+    completeLongPress(x, y) {
+        Utils.feedback.haptic();
+        
+        if (this.indicator) {
+            this.indicator.classList.remove('active');
+            this.indicator.classList.add('complete');
+            setTimeout(() => this.indicator.classList.remove('complete'), 300);
+        }
+        
+        this.simulation.addPoint(x, y);
+        this.cancelLongPress();
+    }
+    
+    cancelLongPress() {
+        if (this.state.longPressTimer) {
+            clearTimeout(this.state.longPressTimer);
+            this.state.longPressTimer = null;
+        }
+        this.state.isLongPressing = false;
+        
+        if (this.indicator) {
+            this.indicator.classList.remove('active', 'complete');
+        }
+    }
+    
+    handleStart(event, pointer) {
+        event.preventDefault();
+        const coords = this.getCoordinates(pointer);
+        this.state.startPos = coords;
+        
+        const hitPoint = this.simulation.points.findPointAt(coords.x, coords.y);
+        
+        if (hitPoint) {
+            this.simulation.points.select(hitPoint.id);
+            this.state.isDragging = true;
+            this.state.dragPoint = hitPoint;
+            this.canvas.style.cursor = 'grabbing';
+        } else {
+            this.startLongPress(coords.x, coords.y);
+            this.simulation.points.deselect();
+        }
+    }
+    
+    handleMove(event, pointer) {
+        const coords = this.getCoordinates(pointer);
+        const distance = Utils.math.distance(
+            coords.x, coords.y, 
+            this.state.startPos.x, this.state.startPos.y
+        );
+        
+        if (distance > CONFIG.interaction.moveThreshold) {
+            this.cancelLongPress();
+        }
+        
+        if (this.state.isDragging && this.state.dragPoint) {
+            event.preventDefault();
+            if (distance > CONFIG.interaction.dragThreshold) {
+                this.state.dragPoint.x = coords.x;
+                this.state.dragPoint.y = coords.y;
+                this.simulation.render();
+            }
+        }
+    }
+    
+    handleEnd(event) {
+        if (this.state.isDragging) {
+            event.preventDefault();
+            this.state.isDragging = false;
+            this.state.dragPoint = null;
+            this.canvas.style.cursor = 'crosshair';
+        }
+        this.cancelLongPress();
+    }
+    
+    cleanup() {
+        this.state.isDragging = false;
+        this.state.dragPoint = null;
+        this.canvas.style.cursor = 'crosshair';
+        this.cancelLongPress();
+    }
+}
+
+// ===== ANIMATION ENGINE =====
+class AnimationEngine {
+    constructor(appState, points, renderer) {
+        this.appState = appState;
+        this.points = points;
+        this.renderer = renderer;
+        this.animationId = null;
+    }
+    
+    start() {
+        this.appState.set('isAnimating', true);
+        this.appState.animation.lastFrameTime = performance.now();
+        this.animate();
+    }
+    
+    stop() {
+        this.appState.set('isAnimating', false);
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
+    }
+    
+    toggle() {
+        this.appState.get('isAnimating') ? this.stop() : this.start();
+    }
+    
+    animate() {
+        const currentTime = performance.now();
+        
+        if (this.appState.shouldRender(currentTime)) {
+            const deltaTime = (currentTime - this.appState.animation.lastFrameTime) / 1000;
+            
+            if (this.appState.get('animatePoints')) {
+                const bounds = { width: window.innerWidth, height: window.innerHeight };
+                this.points.updatePositions(deltaTime, bounds);
+            }
+            
+            this.appState.incrementTime();
+            this.render();
+            this.appState.animation.lastFrameTime = currentTime;
+        }
+        
+        if (this.appState.get('isAnimating')) {
+            this.animationId = requestAnimationFrame(() => this.animate());
+        }
+    }
+    
+    render() {
+        const colorSettings = this.appState.getColorSettings();
+        this.renderer.waveField.render(
+            this.points, 
+            this.appState.get('mediumFade'),
+            this.appState.get('time'),
+            colorSettings
+        );
+        this.renderer.point.render(this.points, this.appState.get('showPoints'));
+    }
+}
+
+// ===== MAIN APPLICATION =====
+class WaveSimulation {
+    constructor() {
+        this.canvas = document.getElementById('canvas');
+        
+        // Core systems
+        this.appState = new AppState();
+        this.points = new PointManager();
+        this.ui = new UIController();
+        
+        // Renderers
+        this.renderer = {
+            waveField: new WaveFieldRenderer(this.canvas),
+            point: new PointRenderer(this.canvas)
+        };
+        
+        // Animation & Interaction
+        this.animationEngine = new AnimationEngine(this.appState, this.points, this.renderer);
+        this.interaction = new InteractionManager(this.canvas, this);
+        
+        this.init();
+    }
+    
+    init() {
+        this.setupEventHandlers();
+        this.setupStateListeners();
+        this.setupWindowEvents();
+        
+        // Welcome callback
+        this.ui.on('welcomeStartBtn', 'click', () => this.createStarterPoint());
+        
+        console.log('Wave simulation initialized');
+    }
+    
+    setupEventHandlers() {
+        // Control buttons
+        const buttonHandlers = {
+            clearBtn: () => this.clearAll(),
+            playPauseBtn: () => this.animationEngine.toggle(),
+            syncBtn: () => this.syncPoints(),
+            showPointsBtn: () => this.appState.set('showPoints', !this.appState.get('showPoints')),
+            animatePointsBtn: () => this.appState.set('animatePoints', !this.appState.get('animatePoints')),
+            generatePatternBtn: () => this.generatePattern(),
+            pointWaveTypeBtn: () => this.toggleWaveType(),
+            clonePointBtn: () => this.clonePoint(),
+            deletePointBtn: () => this.deletePoint(),
+            colorModeBtn: () => this.appState.set('useColor', !this.appState.get('useColor')),
+            complementaryBtn: () => this.setComplementaryColors()
+        };
+        
+        Object.entries(buttonHandlers).forEach(([id, handler]) => {
+            this.ui.on(id, 'click', handler);
+        });
+        
+        // Sliders
+        const sliderHandlers = {
+            pointStrength: (e) => this.updatePointProperty('strength', parseInt(e.target.value)),
+            pointFrequency: (e) => this.updatePointProperty('frequency', parseFloat(e.target.value)),
+            pointSpeed: (e) => this.updatePointProperty('speed', parseFloat(e.target.value)),
+            pointVelocity: (e) => this.updatePointProperty('velocity', parseInt(e.target.value)),
+            fadeSlider: (e) => this.appState.set('mediumFade', parseFloat(e.target.value)),
+            hue1Slider: (e) => this.appState.set('hue1', parseInt(e.target.value)),
+            hue2Slider: (e) => this.appState.set('hue2', parseInt(e.target.value)),
+            performanceSlider: (e) => this.appState.set('performanceLevel', parseInt(e.target.value)),
+            fpsSlider: (e) => this.appState.setFPS(parseInt(e.target.value)),
+            patternCount: (e) => this.ui.setText('patternCountValue', e.target.value)
+        };
+        
+        Object.entries(sliderHandlers).forEach(([id, handler]) => {
+            this.ui.on(id, 'input', handler);
+        });
+        
+        // Point list
+        this.ui.on('pointList', 'click', (e) => {
+            const item = e.target.closest('.point-item');
+            if (item) {
+                this.points.select(item.dataset.id);
+            }
+        });
+    }
+    
+    setupStateListeners() {
+        // App state changes
+        this.appState.on('change', ({ key, value }) => {
+            switch (key) {
+                case 'isAnimating':
+                    this.ui.updateButton('playPauseBtn', !value, 'Play', 'Pause');
+                    break;
+                case 'showPoints':
+                    this.ui.updateButton('showPointsBtn', value, 'Hide Points', 'Show Points');
+                    this.render();
+                    break;
+                case 'animatePoints':
+                    this.ui.updateButton('animatePointsBtn', value, 'Stop Movement', 'Animate Points');
+                    break;
+                case 'performanceLevel':
+                    this.renderer.waveField.setPerformanceLevel(value);
+                    this.updatePerformanceInfo();
+                    break;
+                case 'fps':
+                    this.ui.setText('fpsValue', `${value} FPS`);
+                    break;
+                case 'mediumFade':
+                    this.ui.setText('fadeValue', Utils.math.formatValue(value));
+                    this.ui.setValue('fadeSlider', value);
+                    break;
+                case 'useColor':
+                    this.ui.updateColorControls(value);
+                    this.render();
+                    break;
+                case 'hue1':
+                case 'hue2':
+                    this.ui.updateColorPreview(
+                        this.appState.get('hue1'),
+                        this.appState.get('hue2')
+                    );
+                    this.render();
+                    break;
+            }
+        });
+        
+        // Point changes
+        this.points.on('change', () => this.updatePointsUI());
+        this.points.on('select', (point) => {
+            this.ui.updateSelectedPoint(point);
+            this.updatePointsUI();
+        });
+    }
+    
+    setupWindowEvents() {
+        window.addEventListener('resize', () => {
+            this.renderer.waveField.resize();
+            this.updatePerformanceInfo();
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            const selected = this.points.getSelected();
+            if (!selected) return;
+            
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                e.preventDefault();
+                this.deletePoint();
+            } else if (e.key === 'c' || e.key === 'C') {
+                e.preventDefault();
+                this.clonePoint();
+            }
+        });
+    }
+    
+    // Actions
+    addPoint(x, y, properties = {}) {
+        const point = this.points.add(x, y, properties);
+        point.startTime = this.appState.get('time');
+        this.points.select(point.id);
+        
+        if (!this.appState.get('isAnimating') && this.points.count > 0) {
+            this.animationEngine.start();
+        }
+    }
+    
+    generatePattern() {
+        const type = this.ui.get('patternType')?.value || 'grid';
+        const count = parseInt(this.ui.get('patternCount')?.value || 16);
+        
+        this.points.clear();
+        
+        const bounds = { width: window.innerWidth, height: window.innerHeight };
+        const positions = PatternGenerator.generate(type, count, bounds);
+        
+        positions.forEach((pos, index) => {
+            const point = this.points.add(pos.x, pos.y);
+            point.startTime = this.appState.get('time') - (index * 0.1);
+        });
+        
+        if (this.points.count > 0) {
+            const first = this.points.getAllPoints()[0];
+            if (first) this.points.select(first.id);
+            this.appState.set('showPoints', true);
+            if (!this.appState.get('isAnimating')) {
+                this.animationEngine.start();
+            }
+        }
+        
+        Utils.feedback.haptic();
+    }
+    
+    clonePoint() {
+        const selected = this.points.getSelected();
+        if (!selected) return;
+        
+        const bounds = { width: window.innerWidth, height: window.innerHeight };
+        const pos = Physics.findRandomPosition(this.points, bounds);
+        
+        const clone = this.points.add(pos.x, pos.y, selected.getProperties());
+        
+        if (selected.velocity > 0) {
+            Physics.setRandomVelocity(clone, selected.velocity);
+        }
+        
+        clone.startTime = this.appState.get('time');
+        this.points.select(clone.id);
+        
+        if (!this.appState.get('isAnimating')) {
+            this.animationEngine.start();
+        }
+        
+        Utils.feedback.visual(pos.x, pos.y, 'clone-flash');
+        Utils.feedback.haptic();
+    }
+    
+    deletePoint() {
+        const selected = this.points.getSelected();
+        if (selected) {
+            this.points.remove(selected.id);
+            if (this.points.count === 0) {
+                this.animationEngine.stop();
+            }
+        }
+    }
+    
+    toggleWaveType() {
+        const selected = this.points.getSelected();
+        if (selected) {
+            selected.waveType = selected.waveType === 'sine' ? 'step' : 'sine';
+            this.ui.updateSelectedPoint(selected);
+            this.updatePointsUI();
+        }
+    }
+    
+    updatePointProperty(property, value) {
+        const selected = this.points.getSelected();
+        if (selected && selected.updateProperty(property, value)) {
+            this.ui.updateSelectedPoint(selected);
+            this.updatePointsUI();
+        }
+    }
+    
+    syncPoints() {
+        if (this.points.count === 0) return;
+        
+        this.appState.resetTime();
+        for (const point of this.points) {
+            point.startTime = 0;
+        }
+        
+        if (!this.appState.get('isAnimating')) {
+            this.animationEngine.start();
+        }
+    }
+    
+    setComplementaryColors() {
+        const hue1 = this.appState.get('hue1');
+        const complementary = (hue1 + 180) % 360;
+        this.appState.set('hue2', complementary);
+        this.ui.setValue('hue2Slider', complementary);
+    }
+    
+    clearAll() {
+        this.points.clear();
+        this.appState.resetTime();
+        this.appState.set('showPoints', false);
+        this.animationEngine.stop();
+        this.interaction.cleanup();
+        this.render();
+    }
+    
+    createStarterPoint() {
+        const cx = Math.floor(window.innerWidth / 2);
+        const cy = Math.floor(window.innerHeight / 2);
+        const point = this.points.add(cx, cy);
+        point.startTime = 0;
+        this.points.select(point.id);
+        this.animationEngine.start();
+    }
+    
+    // UI Updates
+    updatePointsUI() {
+        this.ui.setText('stats', `Points: ${this.points.count}`);
+        this.ui.updatePointList(this.points);
+    }
+    
+    updatePerformanceInfo() {
+        const level = this.appState.get('performanceLevel');
+        const config = CONFIG.performance.levels[level];
+        const width = Math.floor(window.innerWidth / config.skip);
+        const height = Math.floor(window.innerHeight / config.skip);
+        const speedup = config.skip === 1 ? '' : ` (${config.skip ** 2}x faster)`;
+        
+        this.ui.setText('performanceValue', config.label);
+        this.ui.setText('performanceInfo', `Resolution: ${width}×${height}${speedup}`);
+    }
+    
+    render() {
+        this.animationEngine.render();
+    }
+}
+
+// ===== INITIALIZATION =====
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        new WaveSimulation();
+    } catch (error) {
+        console.error('Failed to initialize wave simulation:', error);
+        document.body.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; height: 100vh; color: white; text-align: center; font-family: monospace;">
+                <div>
+                    <h2>Wave Simulation Error</h2>
+                    <p>Failed to initialize application</p>
+                    <p style="font-size: 12px; opacity: 0.7;">Check console for details</p>
+                </div>
+            </div>
+        `;
+    }
+});
+</script>
+</body>
+</html>
