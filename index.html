@@ -301,6 +301,38 @@ body {
     box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
 }
 
+.toggle-switch {
+    position: relative;
+    width: 50px;
+    height: 24px;
+    background: var(--bg-button);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    border: 1px solid var(--border-primary);
+}
+
+.toggle-switch.active {
+    background: rgba(0, 255, 136, 0.3);
+    border-color: rgba(0, 255, 136, 0.6);
+}
+
+.toggle-circle {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-switch.active .toggle-circle {
+    transform: translateX(26px);
+}
+
 .info-text {
     font-size: 11px;
     opacity: 0.6;
@@ -642,9 +674,9 @@ body {
         <div class="section-title">Medium</div>
         
         <div class="control-group">
-            <label class="control-label">Colour</label>
-            <div class="button-group">
-                <button class="control-button toggle-button" id="colorModeBtn">Grayscale</button>
+            <label class="control-label">Color On</label>
+            <div class="toggle-switch" id="colorToggle">
+                <div class="toggle-circle"></div>
             </div>
         </div>
         
@@ -674,18 +706,10 @@ body {
         </div>
         
         <div class="control-group">
-            <label class="control-label">Phase Shift</label>
-            <div class="slider-container">
-                <input type="range" class="slider" id="phaseShiftSlider" min="-3.14159" max="3.14159" step="0.1" value="0">
-                <div class="slider-value" id="phaseShiftValue">0.0 (0°)</div>
-            </div>
-        </div>
-        
-        <div class="control-group">
             <label class="control-label">Point Phase Offset</label>
             <div class="slider-container">
-                <input type="range" class="slider" id="pointPhaseOffsetSlider" min="0" max="6.28318" step="0.1" value="0">
-                <div class="slider-value" id="pointPhaseOffsetValue">0.0 (0°)</div>
+                <input type="range" class="slider" id="pointPhaseOffsetSlider" min="-2" max="2" step="0.1" value="0">
+                <div class="slider-value" id="pointPhaseOffsetValue">0</div>
             </div>
         </div>
         
@@ -930,7 +954,6 @@ class WaveSimulation {
         this.time = 0;
         this.isAnimating = false;
         this.showPoints = false;
-        this.phaseShift = 0;
         this.pointPhaseOffset = 0;
         this.mediumDamping = 0.008;
         this.performanceLevel = 1;
@@ -1006,7 +1029,7 @@ class WaveSimulation {
         document.getElementById('clonePointBtn').addEventListener('click', () => this.clonePoint());
         document.getElementById('deletePointBtn').addEventListener('click', () => this.deletePoint());
         document.getElementById('applyToAllBtn').addEventListener('click', () => this.applyToAllPoints());
-        document.getElementById('colorModeBtn').addEventListener('click', () => this.toggleColorMode());
+        document.getElementById('colorToggle').addEventListener('click', () => this.toggleColorMode());
         document.getElementById('complementaryBtn').addEventListener('click', () => this.setComplementaryColors());
         
         // Sliders
@@ -1019,16 +1042,9 @@ class WaveSimulation {
         this.setupSlider('performanceSlider', (v) => this.setPerformanceLevel(parseInt(v)));
         this.setupSlider('patternCount', (v) => this.updateSliderValue('patternCountValue', v));
         this.setupSlider('patternScale', (v) => this.updateSliderValue('patternScaleValue', v + '×'));
-        this.setupSlider('phaseShiftSlider', (v) => { 
-            this.phaseShift = parseFloat(v); 
-            const deg = Math.round((this.phaseShift * 180) / Math.PI);
-            this.updateSliderValue('phaseShiftValue', `${formatValue(this.phaseShift, 1)} (${deg}°)`);
-            this.render();
-        });
         this.setupSlider('pointPhaseOffsetSlider', (v) => { 
-            this.pointPhaseOffset = parseFloat(v); 
-            const deg = Math.round((this.pointPhaseOffset * 180) / Math.PI);
-            this.updateSliderValue('pointPhaseOffsetValue', `${formatValue(this.pointPhaseOffset, 1)} (${deg}°)`);
+            this.pointPhaseOffset = parseFloat(v) * Math.PI; 
+            this.updateSliderValue('pointPhaseOffsetValue', this.formatPiMultiplier(parseFloat(v)));
             this.applyPointPhaseOffsets();
         });
         
@@ -1086,6 +1102,14 @@ class WaveSimulation {
     updateSliderValue(id, value) {
         const el = document.getElementById(id);
         if (el) el.textContent = value;
+    }
+    
+    formatPiMultiplier(value) {
+        if (value === 0) return '0';
+        if (value === 1) return 'π';
+        if (value === -1) return '-π';
+        if (value % 1 === 0) return `${value}π`;
+        return `${formatValue(value, 1)}π`;
     }
     
     // Panel management
@@ -1442,13 +1466,22 @@ class WaveSimulation {
         if (this.points.size === 0) return;
         
         this.time = 0;
+        this.pointPhaseOffset = 0;
+        
         for (const point of this.points.values()) {
             point.startTime = 0;
+            point.phaseOffset = 0;
         }
+        
+        // Reset UI controls
+        document.getElementById('pointPhaseOffsetSlider').value = 0;
+        this.updateSliderValue('pointPhaseOffsetValue', '0');
         
         if (!this.isAnimating) {
             this.startAnimation();
         }
+        
+        this.render();
     }
     
     toggleShowPoints() {
@@ -1459,7 +1492,10 @@ class WaveSimulation {
     
     toggleColorMode() {
         this.useColor = !this.useColor;
-        this.updateButton('colorModeBtn', !this.useColor, 'Grayscale', 'Color');
+        const toggle = document.getElementById('colorToggle');
+        if (toggle) {
+            toggle.classList.toggle('active', this.useColor);
+        }
         this.updateColorControls();
         this.render();
     }
@@ -1571,7 +1607,7 @@ class WaveSimulation {
             if (age < 0) continue;
             
             const dist = point.distanceTo(x, y);
-            const phase = point.frequency * dist - point.speed * age + this.phaseShift + point.phaseOffset;
+            const phase = point.frequency * dist - point.speed * age + point.phaseOffset;
             
             let waveValue;
             if (point.waveType === 'sine') {
@@ -1660,6 +1696,11 @@ class WaveSimulation {
             const element = document.getElementById(id);
             if (element) element.style.display = this.useColor ? 'block' : 'none';
         });
+        
+        const toggle = document.getElementById('colorToggle');
+        if (toggle) {
+            toggle.classList.toggle('active', this.useColor);
+        }
     }
     
     updateColorPreview() {
