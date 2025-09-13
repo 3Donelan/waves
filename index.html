@@ -828,7 +828,7 @@ class WavePoint {
     }
     
     isHit(x, y) {
-        return this.distanceTo(x, y) <= 20;
+        return this.distanceTo(x, y) <= 25;
     }
     
     getDisplayName() {
@@ -1134,9 +1134,12 @@ class WaveSimulation {
     // Interaction handling
     getCoordinates(pointer) {
         const rect = this.canvas.getBoundingClientRect();
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        
         return {
-            x: Math.floor(pointer.clientX - rect.left),
-            y: Math.floor(pointer.clientY - rect.top)
+            x: Math.floor((pointer.clientX - rect.left) * scaleX),
+            y: Math.floor((pointer.clientY - rect.top) * scaleY)
         };
     }
     
@@ -1667,17 +1670,28 @@ class WaveSimulation {
     }
     
     drawPoint(point) {
+        const visualRadius = 10;
+        const hitRadius = 25;
+        const borderWidth = 2;
+        
         if (point.selected) {
             this.ctx.strokeStyle = '#00ff88';
             this.ctx.lineWidth = 2;
             this.ctx.beginPath();
-            this.ctx.arc(point.x, point.y, 20, 0, 2 * Math.PI);
+            this.ctx.arc(point.x, point.y, hitRadius, 0, 2 * Math.PI);
             this.ctx.stroke();
         }
         
-        this.ctx.fillStyle = point.selected ? '#00ff88' : '#ff4444';
+        // Draw border (dark outline)
+        this.ctx.fillStyle = '#333333';
         this.ctx.beginPath();
-        this.ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
+        this.ctx.arc(point.x, point.y, visualRadius + borderWidth, 0, 2 * Math.PI);
+        this.ctx.fill();
+        
+        // Draw main dot (white)
+        this.ctx.fillStyle = 'white';
+        this.ctx.beginPath();
+        this.ctx.arc(point.x, point.y, visualRadius, 0, 2 * Math.PI);
         this.ctx.fill();
     }
     
