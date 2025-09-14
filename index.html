@@ -370,28 +370,31 @@ body {
     transform: translateX(26px);
 }
 
-.color-picker-container {
+.color-schemes {
     display: flex;
-    gap: 10px;
-    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
-.color-preview {
-    width: 40px;
-    height: 24px;
-    border-radius: 4px;
+.color-scheme {
+    width: 60px;
+    height: 30px;
+    border-radius: 6px;
     cursor: pointer;
-    border: 1px solid var(--border-primary);
+    border: 2px solid var(--border-primary);
     transition: 0.2s ease;
+    flex-shrink: 0;
 }
 
-.color-preview:hover {
+.color-scheme:hover {
     border-color: var(--color-primary);
     box-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
 }
 
-.color-input {
-    display: none;
+.color-scheme.selected {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 12px rgba(0, 255, 136, 0.5);
+    transform: scale(1.05);
 }
 
 .info-text {
@@ -918,13 +921,16 @@ body {
         </div>
         
         <div class="control-group" id="colorControls" style="display: none;">
-            <label class="control-label">Wave Colors</label>
-            <div class="color-picker-container">
-                <div class="color-preview" id="color1Preview" style="background-color: hsl(240, 70%, 50%);"></div>
-                <input type="color" id="color1Input" class="color-input" value="#4d4dff">
-                <span style="font-size: 12px; opacity: 0.7;">to</span>
-                <div class="color-preview" id="color2Preview" style="background-color: hsl(0, 70%, 50%);"></div>
-                <input type="color" id="color2Input" class="color-input" value="#ff4d4d">
+            <label class="control-label">Color Schemes</label>
+            <div class="color-schemes">
+                <div class="color-scheme" data-scheme="0" style="background: linear-gradient(to right, #0064ff, #ff6400);" title="Blue-Orange"></div>
+                <div class="color-scheme" data-scheme="1" style="background: linear-gradient(to right, #dc1414, #14dc14);" title="Red-Green"></div>
+                <div class="color-scheme" data-scheme="2" style="background: linear-gradient(to right, #800080, #ffff00);" title="Purple-Yellow"></div>
+                <div class="color-scheme" data-scheme="3" style="background: linear-gradient(to right, #00ffff, #ff00ff);" title="Cyan-Magenta"></div>
+                <div class="color-scheme" data-scheme="4" style="background: linear-gradient(to right, #003366, #ffd700);" title="Navy-Gold"></div>
+                <div class="color-scheme" data-scheme="5" style="background: linear-gradient(to right, #32cd32, #8a2be2);" title="Lime-Violet"></div>
+                <div class="color-scheme" data-scheme="6" style="background: linear-gradient(to right, #008080, #ff7f50);" title="Teal-Coral"></div>
+                <div class="color-scheme" data-scheme="7" style="background: linear-gradient(to right, #dc143c, #40e0d0);" title="Crimson-Turquoise"></div>
             </div>
         </div>
         
@@ -994,7 +1000,50 @@ const CONFIG = {
         radial: 'Radial', 
         spiral: 'Spiral',
         sunflower: 'Sunflower'
-    }
+    },
+    
+    colorSchemes: [
+        {
+            name: 'Blue-Orange',
+            minima: { r: 0, g: 100, b: 255 },    // #0064ff
+            maxima: { r: 255, g: 100, b: 0 }     // #ff6400
+        },
+        {
+            name: 'Red-Green', 
+            minima: { r: 220, g: 20, b: 20 },    // #dc1414
+            maxima: { r: 20, g: 220, b: 20 }     // #14dc14
+        },
+        {
+            name: 'Purple-Yellow',
+            minima: { r: 128, g: 0, b: 128 },    // #800080
+            maxima: { r: 255, g: 255, b: 0 }     // #ffff00
+        },
+        {
+            name: 'Cyan-Magenta',
+            minima: { r: 0, g: 255, b: 255 },    // #00ffff
+            maxima: { r: 255, g: 0, b: 255 }     // #ff00ff
+        },
+        {
+            name: 'Navy-Gold',
+            minima: { r: 0, g: 51, b: 102 },     // #003366
+            maxima: { r: 255, g: 215, b: 0 }     // #ffd700
+        },
+        {
+            name: 'Lime-Violet',
+            minima: { r: 50, g: 205, b: 50 },    // #32cd32
+            maxima: { r: 138, g: 43, b: 226 }    // #8a2be2
+        },
+        {
+            name: 'Teal-Coral',
+            minima: { r: 0, g: 128, b: 128 },    // #008080
+            maxima: { r: 255, g: 127, b: 80 }    // #ff7f50
+        },
+        {
+            name: 'Crimson-Turquoise',
+            minima: { r: 220, g: 20, b: 60 },    // #dc143c
+            maxima: { r: 64, g: 224, b: 208 }    // #40e0d0
+        }
+    ]
 };
 
 // ====================================================================
@@ -1025,6 +1074,36 @@ const Utils = {
         if (value === -1) return '-π';
         if (value % 1 === 0) return `${value}π`;
         return `${Utils.formatValue(value, 1)}π`;
+    },
+    
+    rgbToHsl: (r, g, b) => {
+        r /= 255;
+        g /= 255;
+        b /= 255;
+        
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+        
+        if (max === min) {
+            h = s = 0;
+        } else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
+        
+        return {
+            h: Math.round(h * 360),
+            s: Math.round(s * 100),
+            l: Math.round(l * 100)
+        };
     },
     
     hexToHsl: (hex) => {
@@ -1254,9 +1333,10 @@ class WaveEngine {
         this.pointPhaseOffset = 0;
         this.mediumDamping = CONFIG.defaults.damping;
         this.creationCounter = 0;
-        this.color1 = { h: 240, s: 70, l: 50 };
-        this.color2 = { h: 0, s: 70, l: 50 };
+        this.color1 = CONFIG.colorSchemes[0].minima; // Default to Blue-Orange scheme
+        this.color2 = CONFIG.colorSchemes[0].maxima;
         this.useColor = false;
+        this.selectedColorScheme = 0;
     }
     
     addPoint(x, y, properties = {}) {
@@ -1349,8 +1429,13 @@ class WaveEngine {
         }
         
         const normalizedValue = Utils.clamp((waveValue / 100 + 1) / 2, 0, 1);
-        const interpolatedHue = Utils.lerpHue(this.color1.h, this.color2.h, normalizedValue);
-        return Utils.hslToRgb(interpolatedHue, 70, 50);
+        
+        // Interpolate between color1 and color2 using RGB
+        const r = Math.round(this.color1.r + (this.color2.r - this.color1.r) * normalizedValue);
+        const g = Math.round(this.color1.g + (this.color2.g - this.color1.g) * normalizedValue);
+        const b = Math.round(this.color1.b + (this.color2.b - this.color1.b) * normalizedValue);
+        
+        return { r, g, b };
     }
     
     updateTime(deltaTime) {
@@ -1364,6 +1449,14 @@ class WaveEngine {
     setColors(color1, color2) {
         this.color1 = color1;
         this.color2 = color2;
+    }
+    
+    setColorScheme(schemeIndex) {
+        if (schemeIndex >= 0 && schemeIndex < CONFIG.colorSchemes.length) {
+            this.selectedColorScheme = schemeIndex;
+            const scheme = CONFIG.colorSchemes[schemeIndex];
+            this.setColors(scheme.minima, scheme.maxima);
+        }
     }
     
     setPointPhaseOffset(offset) {
@@ -1580,7 +1673,6 @@ class UIController {
             'clearBtn', 'playPauseBtn', 'syncBtn', 'showPointsToggle',
             'generatePatternBtn', 'pointWaveTypeBtn', 'clonePointBtn',
             'deletePointBtn', 'applyToAllBtn', 'colorToggle',
-            'color1Preview', 'color1Input', 'color2Preview', 'color2Input',
             'pointList', 'selectedPointSection', 'selectedPointId',
             'stats', 'colorControls', 'performanceInfo'
         ];
@@ -1616,11 +1708,10 @@ class UIController {
         this.elements.applyToAllBtn.addEventListener('click', () => this.applyToAllPoints());
         this.elements.colorToggle.addEventListener('click', () => this.toggleColorMode());
         
-        // Color pickers
-        this.elements.color1Preview.addEventListener('click', () => this.elements.color1Input.click());
-        this.elements.color2Preview.addEventListener('click', () => this.elements.color2Input.click());
-        this.elements.color1Input.addEventListener('change', (e) => this.updateColor1(e.target.value));
-        this.elements.color2Input.addEventListener('change', (e) => this.updateColor2(e.target.value));
+        // Color scheme selection
+        document.querySelectorAll('.color-scheme').forEach((element, index) => {
+            element.addEventListener('click', () => this.selectColorScheme(index));
+        });
         
         // Sliders
         this.setupSliders();
@@ -1988,18 +2079,17 @@ class UIController {
         this.animationManager.forceRender();
     }
     
-    updateColor1(hex) {
-        const hsl = Utils.hexToHsl(hex);
-        this.engine.color1 = hsl;
-        this.elements.color1Preview.style.backgroundColor = hex;
+    selectColorScheme(schemeIndex) {
+        this.engine.setColorScheme(schemeIndex);
+        this.updateColorSchemeSelection(schemeIndex);
         this.animationManager.forceRender();
+        Utils.haptic();
     }
     
-    updateColor2(hex) {
-        const hsl = Utils.hexToHsl(hex);
-        this.engine.color2 = hsl;
-        this.elements.color2Preview.style.backgroundColor = hex;
-        this.animationManager.forceRender();
+    updateColorSchemeSelection(selectedIndex) {
+        document.querySelectorAll('.color-scheme').forEach((element, index) => {
+            element.classList.toggle('selected', index === selectedIndex);
+        });
     }
     
     setPerformanceLevel(level) {
@@ -2037,6 +2127,10 @@ class UIController {
     
     updateColorControls() {
         this.elements.colorControls.style.display = this.engine.useColor ? 'block' : 'none';
+        
+        if (this.engine.useColor) {
+            this.updateColorSchemeSelection(this.engine.selectedColorScheme);
+        }
     }
     
     updatePointsUI() {
