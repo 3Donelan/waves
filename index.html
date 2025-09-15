@@ -39,7 +39,7 @@ body {
     width: 100vw;
     height: 100vh;
     background: #000;
-    cursor: crosshair;
+    cursor: url("data:image/svg+xml,%3csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3e%3cline x1='10' y1='0' x2='10' y2='20' stroke='%2300ff88' stroke-width='2'/%3e%3cline x1='0' y1='10' x2='20' y2='10' stroke='%2300ff88' stroke-width='2'/%3e%3c/svg%3e") 10 10, crosshair;
     touch-action: none;
     display: block;
 }
@@ -74,11 +74,12 @@ body {
     animation: pulseOut 0.5s ease-out;
 }
 
-.multi-select-indicator {
-    width: 40px;
-    height: 40px;
+.snap-preview {
+    width: 16px;
+    height: 16px;
     border: 2px solid var(--color-secondary);
-    animation: multiSelectPulse 0.3s ease-out;
+    background: rgba(0, 136, 255, 0.3);
+    animation: snapPulse 0.5s ease-out infinite alternate;
 }
 
 @keyframes longPressGrow {
@@ -95,12 +96,6 @@ body {
     0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
     50% { opacity: 1; }
     100% { opacity: 0; transform: translate(-50%, -50%) scale(2); }
-}
-
-@keyframes multiSelectPulse {
-    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
 }
 
 .help-button {
@@ -281,6 +276,20 @@ body {
     border-radius: 3px;
     min-width: 35px;
     text-align: center;
+    border: 1px solid var(--border-primary);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.slider-value:hover {
+    border-color: var(--color-primary);
+}
+
+.slider-value:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 5px rgba(0, 255, 136, 0.3);
 }
 
 .button-group {
@@ -645,6 +654,7 @@ body {
 <canvas id="canvas"></canvas>
 
 <div class="visual-indicator long-press-indicator" id="longPressIndicator"></div>
+<div class="visual-indicator snap-preview" id="snapPreview"></div>
 
 <div class="modal-overlay" id="welcomeOverlay">
     <div class="modal">
@@ -710,30 +720,27 @@ body {
             <div class="section-title">Basic Controls</div>
             <div class="instruction-list">
                 <div class="instruction-item">
-                    <strong>Add Points:</strong> Press and hold on empty space until indicator completes
+                    <strong>Add Point:</strong> Press and hold on empty space until indicator completes
                 </div>
                 <div class="instruction-item">
-                    <strong>Select Points:</strong> Tap on wave points to select them
+                    <strong>Select Point:</strong> Tap on wave point to select it
                 </div>
                 <div class="instruction-item">
-                    <strong>Multi-Select:</strong> Double-tap on points when visible for multiple selection
+                    <strong>Move Point:</strong> Drag selected point to new position
                 </div>
                 <div class="instruction-item">
-                    <strong>Move Points:</strong> Drag selected points to new positions
-                </div>
-                <div class="instruction-item">
-                    <strong>Delete Points:</strong> Select points and use delete button or keyboard
+                    <strong>Delete Point:</strong> Select point and use delete button or keyboard
                 </div>
             </div>
             
             <div class="section-title">Keyboard Shortcuts</div>
             <div class="keyboard-shortcuts">
                 <div class="shortcut-item">
-                    <span>Delete selected points</span>
+                    <span>Delete selected point</span>
                     <span class="shortcut-key">Del / Backspace</span>
                 </div>
                 <div class="shortcut-item">
-                    <span>Clone selected points</span>
+                    <span>Clone selected point</span>
                     <span class="shortcut-key">C</span>
                 </div>
                 <div class="shortcut-item">
@@ -827,14 +834,14 @@ body {
             <label class="control-label">Number of Points</label>
             <div class="slider-container">
                 <input type="range" class="slider" id="patternCount" min="3" max="36" step="1" value="16">
-                <div class="slider-value" id="patternCountValue">16</div>
+                <input type="number" class="slider-value" id="patternCountValue" min="3" max="36" value="16">
             </div>
         </div>
         <div class="control-group">
             <label class="control-label">Pattern Scale</label>
             <div class="slider-container">
                 <input type="range" class="slider" id="patternScale" min="0.3" max="2.0" step="0.1" value="1.0">
-                <div class="slider-value" id="patternScaleValue">1.0×</div>
+                <input type="number" class="slider-value" id="patternScaleValue" min="0.3" max="2.0" step="0.1" value="1.0">
             </div>
         </div>
         <div class="button-group">
@@ -869,7 +876,7 @@ body {
                 <label class="control-label">Amplitude</label>
                 <div class="slider-container">
                     <input type="range" class="slider" id="pointAmplitude" min="10" max="100" step="5" value="60">
-                    <div class="slider-value" id="pointAmplitudeValue">60</div>
+                    <input type="number" class="slider-value" id="pointAmplitudeValue" min="10" max="100" value="60">
                 </div>
             </div>
             
@@ -877,7 +884,7 @@ body {
                 <label class="control-label">Wavelength</label>
                 <div class="slider-container">
                     <input type="range" class="slider" id="pointWavelength" min="20" max="400" step="10" value="100">
-                    <div class="slider-value" id="pointWavelengthValue">100px</div>
+                    <input type="number" class="slider-value" id="pointWavelengthValue" min="20" max="400" value="100">
                 </div>
             </div>
             
@@ -885,7 +892,7 @@ body {
                 <label class="control-label">Propagation Speed</label>
                 <div class="slider-container">
                     <input type="range" class="slider" id="pointSpeed" min="0.1" max="1.0" step="0.1" value="1.0">
-                    <div class="slider-value" id="pointSpeedValue">1.0</div>
+                    <input type="number" class="slider-value" id="pointSpeedValue" min="0.1" max="1.0" step="0.1" value="1.0">
                 </div>
             </div>
             
@@ -914,7 +921,7 @@ body {
             <label class="control-label">Minima Color (Hue)</label>
             <div class="slider-container">
                 <input type="range" class="slider" id="hue1Slider" min="0" max="360" step="1" value="185">
-                <div class="slider-value" id="hue1Value">185°</div>
+                <input type="number" class="slider-value" id="hue1Value" min="0" max="360" value="185">
             </div>
         </div>
         
@@ -922,7 +929,7 @@ body {
             <label class="control-label">Maxima Color (Hue)</label>
             <div class="slider-container">
                 <input type="range" class="slider" id="hue2Slider" min="0" max="360" step="1" value="285">
-                <div class="slider-value" id="hue2Value">285°</div>
+                <input type="number" class="slider-value" id="hue2Value" min="0" max="360" value="285">
             </div>
         </div>
         
@@ -935,7 +942,7 @@ body {
             <label class="control-label">Point Phase Offset</label>
             <div class="slider-container">
                 <input type="range" class="slider" id="pointPhaseOffsetSlider" min="-2" max="2" step="0.1" value="0">
-                <div class="slider-value" id="pointPhaseOffsetValue">0</div>
+                <input type="number" class="slider-value" id="pointPhaseOffsetValue" min="-2" max="2" step="0.1" value="0">
             </div>
         </div>
         
@@ -943,7 +950,7 @@ body {
             <label class="control-label">Damping</label>
             <div class="slider-container">
                 <input type="range" class="slider" id="dampingSlider" min="0.0" max="0.03" step="0.002" value="0.008">
-                <div class="slider-value" id="dampingValue">0.008</div>
+                <input type="number" class="slider-value" id="dampingValue" min="0.0" max="0.03" step="0.002" value="0.008">
             </div>
         </div>
         
@@ -951,7 +958,7 @@ body {
             <label class="control-label">Resolution</label>
             <div class="slider-container">
                 <input type="range" class="slider" id="performanceSlider" min="0" max="5" step="1" value="2">
-                <div class="slider-value" id="performanceValue">Fast</div>
+                <input type="number" class="slider-value" id="performanceValue" min="0" max="5" value="2">
             </div>
             <div class="stats-text" id="performanceInfo">Resolution: calculating...</div>
         </div>
@@ -981,6 +988,19 @@ const CONFIG = {
         performanceLevel: 2, // Fast
         damping: 0.008,
         showPoints: false
+    },
+    
+    ranges: {
+        amplitude: { min: 10, max: 100, mid: 55 },
+        wavelength: { min: 20, max: 400, mid: 210 },
+        speed: { min: 0.1, max: 1.0, mid: 0.55 },
+        hue1: { min: 0, max: 360, mid: 180 },
+        hue2: { min: 0, max: 360, mid: 180 },
+        phaseOffset: { min: -2, max: 2, mid: 0 },
+        damping: { min: 0.0, max: 0.03, mid: 0.015 },
+        performance: { min: 0, max: 5, mid: 3 },
+        patternCount: { min: 3, max: 36, mid: 20 },
+        patternScale: { min: 0.3, max: 2.0, mid: 1.15 }
     },
     
     performanceLevels: [
@@ -1022,6 +1042,13 @@ const Utils = {
         setTimeout(() => element.remove(), duration);
     },
     
+    snapToGrid: (x, y, gridSpacing) => {
+        return {
+            x: Math.round(x / gridSpacing) * gridSpacing,
+            y: Math.round(y / gridSpacing) * gridSpacing
+        };
+    },
+    
     formatPiMultiplier: (value) => {
         if (value === 0) return '0';
         if (value === 1) return 'π';
@@ -1030,96 +1057,45 @@ const Utils = {
         return `${Utils.formatValue(value, 1)}π`;
     },
     
-    rgbToHsl: (r, g, b) => {
-        r /= 255;
-        g /= 255;
-        b /= 255;
-        
-        const max = Math.max(r, g, b);
-        const min = Math.min(r, g, b);
-        let h, s, l = (max + min) / 2;
-        
-        if (max === min) {
-            h = s = 0;
-        } else {
-            const d = max - min;
-            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-            
-            switch (max) {
-                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-                case g: h = (b - r) / d + 2; break;
-                case b: h = (r - g) / d + 4; break;
-            }
-            h /= 6;
+    // Fixed: Added missing formatInputValue function
+    formatInputValue: (value, fieldType) => {
+        switch (fieldType) {
+            case 'amplitude':
+            case 'wavelength':
+            case 'patternCount':
+            case 'performance':
+            case 'hue1':
+            case 'hue2':
+                return Math.round(value).toString();
+            case 'damping':
+                return Utils.formatValue(value, 3); // Show 3 decimal places for damping
+            case 'speed':
+            case 'patternScale':
+            case 'phaseOffset':
+                return Utils.formatValue(value, 1);
+            default:
+                return value.toString();
         }
-        
-        return {
-            h: Math.round(h * 360),
-            s: Math.round(s * 100),
-            l: Math.round(l * 100)
-        };
     },
     
-    hexToHsl: (hex) => {
-        const r = parseInt(hex.slice(1, 3), 16) / 255;
-        const g = parseInt(hex.slice(3, 5), 16) / 255;
-        const b = parseInt(hex.slice(5, 7), 16) / 255;
+    validateNumericInput: (value, fieldType) => {
+        const range = CONFIG.ranges[fieldType];
+        if (!range) return value;
         
-        const max = Math.max(r, g, b);
-        const min = Math.min(r, g, b);
-        let h, s, l = (max + min) / 2;
+        // Convert to number and check if valid
+        const numValue = parseFloat(value);
         
-        if (max === min) {
-            h = s = 0;
-        } else {
-            const d = max - min;
-            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-            
-            switch (max) {
-                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-                case g: h = (b - r) / d + 2; break;
-                case b: h = (r - g) / d + 4; break;
-            }
-            h /= 6;
+        // Invalid input (NaN, empty, etc.) - use mid value
+        if (isNaN(numValue) || value === '' || value === null || value === undefined) {
+            return range.mid;
         }
         
-        return {
-            h: Math.round(h * 360),
-            s: Math.round(s * 100),
-            l: Math.round(l * 100)
-        };
-    },
-    
-    lerpHue: (hue1, hue2, t) => {
-        let diff = Math.abs(hue1 - hue2);
-        if (diff > 180) {
-            if (hue2 > hue1) hue1 += 360;
-            else hue2 += 360;
-        }
-        return Math.round((hue1 + (hue2 - hue1) * t) % 360);
-    },
-    
-    hslToRgb: (h, s, l) => {
-        h /= 360;
-        s /= 100;
-        l /= 100;
-        const c = (1 - Math.abs(2 * l - 1)) * s;
-        const x = c * (1 - Math.abs((h * 6) % 2 - 1));
-        const m = l - c / 2;
+        // Out of range - clamp to min/max
+        if (numValue < range.min) return range.min;
+        if (numValue > range.max) return range.max;
         
-        let r, g, b;
-        if (h < 1/6) [r, g, b] = [c, x, 0];
-        else if (h < 2/6) [r, g, b] = [x, c, 0];
-        else if (h < 3/6) [r, g, b] = [0, c, x];
-        else if (h < 4/6) [r, g, b] = [0, x, c];
-        else if (h < 5/6) [r, g, b] = [x, 0, c];
-        else [r, g, b] = [c, 0, x];
-        
-        return {
-            r: Math.round((r + m) * 255),
-            g: Math.round((g + m) * 255),
-            b: Math.round((b + m) * 255)
-        };
+        // Valid input within range
+        return numValue;
     }
 };
 
@@ -1382,8 +1358,40 @@ class WaveEngine {
         }
         
         const normalizedValue = Utils.clamp((waveValue / 100 + 1) / 2, 0, 1);
-        const interpolatedHue = Utils.lerpHue(this.hue1, this.hue2, normalizedValue);
-        return Utils.hslToRgb(interpolatedHue, 70, 50);
+        const interpolatedHue = this.lerpHue(this.hue1, this.hue2, normalizedValue);
+        return this.hslToRgb(interpolatedHue, 70, 50);
+    }
+    
+    lerpHue(hue1, hue2, t) {
+        let diff = Math.abs(hue1 - hue2);
+        if (diff > 180) {
+            if (hue2 > hue1) hue1 += 360;
+            else hue2 += 360;
+        }
+        return Math.round((hue1 + (hue2 - hue1) * t) % 360);
+    }
+    
+    hslToRgb(h, s, l) {
+        h /= 360;
+        s /= 100;
+        l /= 100;
+        const c = (1 - Math.abs(2 * l - 1)) * s;
+        const x = c * (1 - Math.abs((h * 6) % 2 - 1));
+        const m = l - c / 2;
+        
+        let r, g, b;
+        if (h < 1/6) [r, g, b] = [c, x, 0];
+        else if (h < 2/6) [r, g, b] = [x, c, 0];
+        else if (h < 3/6) [r, g, b] = [0, c, x];
+        else if (h < 4/6) [r, g, b] = [0, x, c];
+        else if (h < 5/6) [r, g, b] = [x, 0, c];
+        else [r, g, b] = [c, 0, x];
+        
+        return {
+            r: Math.round((r + m) * 255),
+            g: Math.round((g + m) * 255),
+            b: Math.round((b + m) * 255)
+        };
     }
     
     updateTime(deltaTime) {
@@ -1436,7 +1444,7 @@ class Renderer {
         this.skipFactor = CONFIG.performanceLevels[level].skip;
     }
     
-    render(engine, showPoints, showGrid, selectedPoints) {
+    render(engine, showPoints, showGrid, selectedPoint) {
         this.clearCanvas();
         if (engine.points.size > 0) {
             this.renderWaveField(engine);
@@ -1445,7 +1453,7 @@ class Renderer {
         if (showGrid) {
             this.renderGrid();
         }
-        this.renderPoints(engine.getAllPoints(), showPoints, selectedPoints);
+        this.renderPoints(engine.getAllPoints(), showPoints, selectedPoint);
     }
     
     clearCanvas() {
@@ -1491,7 +1499,7 @@ class Renderer {
         const { width, height } = this.canvas;
         const gridSpacing = this.skipFactor * 10; // Grid spacing proportional to performance level
         
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
         this.ctx.lineWidth = 1;
         this.ctx.beginPath();
         
@@ -1510,11 +1518,11 @@ class Renderer {
         this.ctx.stroke();
     }
     
-    renderPoints(allPoints, showPoints, selectedPoints) {
+    renderPoints(allPoints, showPoints, selectedPoint) {
         if (showPoints) {
             allPoints.forEach(point => this.drawPoint(point));
-        } else if (selectedPoints.length > 0) {
-            selectedPoints.forEach(point => this.drawPoint(point));
+        } else if (selectedPoint) {
+            this.drawPoint(selectedPoint);
         }
     }
     
@@ -1570,7 +1578,7 @@ class AnimationManager {
         this.frameInterval = CONFIG.frameInterval;
         this.showPoints = CONFIG.defaults.showPoints;
         this.showGrid = false;
-        this.selectedPoints = [];
+        this.selectedPoint = null;
     }
     
     start() {
@@ -1598,7 +1606,7 @@ class AnimationManager {
         
         if (this.isAnimating && (currentTime - this.lastFrameTime) >= this.frameInterval) {
             this.engine.updateTime(0.2);
-            this.renderer.render(this.engine, this.showPoints, this.showGrid, this.selectedPoints);
+            this.renderer.render(this.engine, this.showPoints, this.showGrid, this.selectedPoint);
             this.lastFrameTime = currentTime;
         }
         
@@ -1609,36 +1617,113 @@ class AnimationManager {
     
     setShowPoints(show) {
         this.showPoints = show;
-        this.renderer.render(this.engine, this.showPoints, this.showGrid, this.selectedPoints);
+        this.renderer.render(this.engine, this.showPoints, this.showGrid, this.selectedPoint);
     }
     
     setShowGrid(show) {
         this.showGrid = show;
-        this.renderer.render(this.engine, this.showPoints, this.showGrid, this.selectedPoints);
+        this.renderer.render(this.engine, this.showPoints, this.showGrid, this.selectedPoint);
     }
     
-    setSelectedPoints(points) {
-        this.selectedPoints = points;
-        this.renderer.render(this.engine, this.showPoints, this.showGrid, this.selectedPoints);
+    setSelectedPoint(point) {
+        this.selectedPoint = point;
+        this.renderer.render(this.engine, this.showPoints, this.showGrid, this.selectedPoint);
     }
     
     forceRender() {
-        this.renderer.render(this.engine, this.showPoints, this.showGrid, this.selectedPoints);
+        this.renderer.render(this.engine, this.showPoints, this.showGrid, this.selectedPoint);
     }
 }
 
 // ====================================================================
-// UI CONTROLLER CLASS
+// INPUT CONTROLLER CLASS - NEW: Simplified input handling
+// ====================================================================
+class InputController {
+    constructor() {
+        this.handlers = new Map();
+    }
+    
+    registerSliderPair(sliderId, inputId, handler) {
+        const slider = document.getElementById(sliderId);
+        const input = document.getElementById(inputId);
+        
+        if (!slider || !input) return;
+        
+        const fieldType = this.getFieldType(sliderId);
+        
+        // Slider updates input and calls handler
+        slider.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            input.value = this.formatDisplayValue(value, fieldType);
+            handler(value);
+        });
+        
+        // Input updates slider and calls handler
+        input.addEventListener('input', (e) => {
+            const rawValue = e.target.value;
+            const numValue = parseFloat(rawValue);
+            
+            if (!isNaN(numValue)) {
+                const validValue = Utils.validateNumericInput(numValue, fieldType);
+                slider.value = validValue;
+                handler(validValue);
+            }
+        });
+        
+        // Validate on blur
+        input.addEventListener('blur', (e) => {
+            const rawValue = e.target.value;
+            const validValue = Utils.validateNumericInput(rawValue, fieldType);
+            slider.value = validValue;
+            input.value = this.formatDisplayValue(validValue, fieldType);
+            handler(validValue);
+        });
+    }
+    
+    getFieldType(id) {
+        const fieldMap = {
+            'pointAmplitude': 'amplitude',
+            'pointWavelength': 'wavelength',
+            'pointSpeed': 'speed',
+            'hue1Slider': 'hue1',
+            'hue2Slider': 'hue2',
+            'pointPhaseOffsetSlider': 'phaseOffset',
+            'dampingSlider': 'damping',
+            'performanceSlider': 'performance',
+            'patternCount': 'patternCount',
+            'patternScale': 'patternScale'
+        };
+        return fieldMap[id] || id;
+    }
+    
+    formatDisplayValue(value, fieldType) {
+        return Utils.formatInputValue(value, fieldType);
+    }
+    
+    updatePair(sliderId, inputId, value) {
+        const slider = document.getElementById(sliderId);
+        const input = document.getElementById(inputId);
+        const fieldType = this.getFieldType(sliderId);
+        
+        if (slider) slider.value = value;
+        if (input) input.value = this.formatDisplayValue(value, fieldType);
+    }
+}
+
+// ====================================================================
+// UI CONTROLLER CLASS - REFACTORED
 // ====================================================================
 class UIController {
     constructor(engine, animationManager, renderer) {
         this.engine = engine;
         this.animationManager = animationManager;
         this.renderer = renderer;
-        this.selectedIds = new Set();
+        this.selectedPointId = null; // Single selection only
         this.panelOpen = false;
         this.elements = this.cacheElements();
+        this.inputController = new InputController();
         this.setupEventListeners();
+        this.setupInputControls();
         this.updatePerformanceInfo();
     }
     
@@ -1686,27 +1771,11 @@ class UIController {
         this.elements.applyToAllBtn.addEventListener('click', () => this.applyToAllPoints());
         this.elements.colorToggle.addEventListener('click', () => this.toggleColorMode());
         
-        // Hue sliders
-        this.setupSlider('hue1Slider', (v) => { 
-            this.engine.hue1 = parseInt(v); 
-            this.updateColorPreview(); 
-            this.animationManager.forceRender(); 
-        }, 0, '°');
-        this.setupSlider('hue2Slider', (v) => { 
-            this.engine.hue2 = parseInt(v); 
-            this.updateColorPreview(); 
-            this.animationManager.forceRender(); 
-        }, 0, '°');
-        
-        // Sliders
-        this.setupSliders();
-        
         // Point list
         this.elements.pointList.addEventListener('click', (e) => {
             const item = e.target.closest('.point-item');
             if (item) {
-                const isMultiSelect = e.ctrlKey || e.shiftKey;
-                this.selectPoint(item.dataset.id, isMultiSelect);
+                this.selectPoint(item.dataset.id);
             }
         });
         
@@ -1720,42 +1789,44 @@ class UIController {
         });
     }
     
-    setupSliders() {
-        this.setupSlider('pointAmplitude', (v) => this.updatePointProperty('amplitude', parseInt(v)), 0);
-        this.setupSlider('pointWavelength', (v) => this.updatePointProperty('wavelength', parseInt(v)), 0, 'px');
-        this.setupSlider('pointSpeed', (v) => this.updatePointProperty('speed', parseFloat(v)), 1);
-        this.setupSlider('dampingSlider', (v) => { 
-            this.engine.setDamping(parseFloat(v)); 
-            this.updateSliderValue('dampingValue', v); 
-        });
-        this.setupSlider('performanceSlider', (v) => this.setPerformanceLevel(parseInt(v)));
-        this.setupSlider('patternCount', (v) => this.updateSliderValue('patternCountValue', v));
-        this.setupSlider('patternScale', (v) => this.updateSliderValue('patternScaleValue', v + '×'));
-        this.setupSlider('pointPhaseOffsetSlider', (v) => { 
-            this.engine.setPointPhaseOffset(parseFloat(v) * Math.PI); 
-            this.updateSliderValue('pointPhaseOffsetValue', Utils.formatPiMultiplier(parseFloat(v)));
-        });
-    }
-    
-    setupSlider(id, handler, decimals = 3, suffix = '') {
-        const slider = document.getElementById(id);
-        const valueEl = document.getElementById(id.replace('Slider', 'Value'));
+    setupInputControls() {
+        // Point property sliders
+        this.inputController.registerSliderPair('pointAmplitude', 'pointAmplitudeValue', 
+            (v) => this.updatePointProperty('amplitude', parseInt(v)));
+        this.inputController.registerSliderPair('pointWavelength', 'pointWavelengthValue', 
+            (v) => this.updatePointProperty('wavelength', parseInt(v)));
+        this.inputController.registerSliderPair('pointSpeed', 'pointSpeedValue', 
+            (v) => this.updatePointProperty('speed', parseFloat(v)));
         
-        if (slider) {
-            slider.addEventListener('input', (e) => {
-                const value = e.target.value;
-                handler(value);
-                if (valueEl) {
-                    const formatted = decimals > 0 ? Utils.formatValue(value, decimals) : value;
-                    valueEl.textContent = formatted + suffix;
-                }
-            });
-        }
-    }
-    
-    updateSliderValue(id, value) {
-        const el = document.getElementById(id);
-        if (el) el.textContent = value;
+        // Color sliders
+        this.inputController.registerSliderPair('hue1Slider', 'hue1Value', (v) => {
+            this.engine.hue1 = parseInt(v);
+            this.updateColorPreview();
+            this.animationManager.forceRender();
+        });
+        this.inputController.registerSliderPair('hue2Slider', 'hue2Value', (v) => {
+            this.engine.hue2 = parseInt(v);
+            this.updateColorPreview();
+            this.animationManager.forceRender();
+        });
+        
+        // Medium controls
+        this.inputController.registerSliderPair('pointPhaseOffsetSlider', 'pointPhaseOffsetValue', (v) => {
+            this.engine.setPointPhaseOffset(parseFloat(v) * Math.PI);
+        });
+        this.inputController.registerSliderPair('dampingSlider', 'dampingValue', (v) => {
+            this.engine.setDamping(parseFloat(v));
+        });
+        this.inputController.registerSliderPair('performanceSlider', 'performanceValue', (v) => {
+            this.setPerformanceLevel(parseInt(v));
+        });
+        
+        // Pattern generator sliders
+        this.inputController.registerSliderPair('patternCount', 'patternCountValue', () => {});
+        this.inputController.registerSliderPair('patternScale', 'patternScaleValue', () => {});
+        
+        // Initialize all input displays with current slider values
+        this.initializeInputDisplays();
     }
     
     // Modal methods
@@ -1801,51 +1872,45 @@ class UIController {
         this.elements.menuToggle.classList.remove('active');
     }
     
-    // Point management methods
-    selectPoint(id, multiSelect = false) {
-        if (!multiSelect) {
-            for (const prevId of this.selectedIds) {
-                const prev = this.engine.getPoint(prevId);
-                if (prev) prev.selected = false;
-            }
-            this.selectedIds.clear();
+    // Point management - SIMPLIFIED: Single selection only
+    selectPoint(id) {
+        // Deselect previous
+        if (this.selectedPointId) {
+            const prevPoint = this.engine.getPoint(this.selectedPointId);
+            if (prevPoint) prevPoint.selected = false;
         }
         
+        // Select new
+        this.selectedPointId = id;
         const point = this.engine.getPoint(id);
         if (point) {
-            if (this.selectedIds.has(id) && multiSelect) {
-                this.selectedIds.delete(id);
-                point.selected = false;
-            } else {
-                this.selectedIds.add(id);
-                point.selected = true;
-            }
+            point.selected = true;
         }
         
         this.updateSelectedPointUI();
         this.updatePointsUI();
-        this.animationManager.setSelectedPoints(this.getSelectedPoints());
+        this.animationManager.setSelectedPoint(point);
     }
     
     deselectAll() {
-        for (const id of this.selectedIds) {
-            const point = this.engine.getPoint(id);
+        if (this.selectedPointId) {
+            const point = this.engine.getPoint(this.selectedPointId);
             if (point) point.selected = false;
         }
-        this.selectedIds.clear();
+        this.selectedPointId = null;
         this.updateSelectedPointUI();
         this.updatePointsUI();
-        this.animationManager.setSelectedPoints([]);
+        this.animationManager.setSelectedPoint(null);
     }
     
-    getSelectedPoints() {
-        return Array.from(this.selectedIds).map(id => this.engine.getPoint(id)).filter(p => p);
+    getSelectedPoint() {
+        return this.selectedPointId ? this.engine.getPoint(this.selectedPointId) : null;
     }
     
     // Action methods
     clearAll() {
         this.engine.clearAll();
-        this.selectedIds.clear();
+        this.selectedPointId = null;
         this.animationManager.stop();
         this.animationManager.setShowPoints(false);
         this.animationManager.setShowGrid(false);
@@ -1883,11 +1948,13 @@ class UIController {
     }
     
     removePoint(id) {
-        this.selectedIds.delete(id);
+        if (this.selectedPointId === id) {
+            this.selectedPointId = null;
+        }
         this.engine.removePoint(id);
         this.updatePointsUI();
         this.updateSelectedPointUI();
-        this.animationManager.setSelectedPoints(this.getSelectedPoints());
+        this.animationManager.setSelectedPoint(null);
         
         if (this.engine.points.size === 0) {
             this.animationManager.stop();
@@ -1912,21 +1979,29 @@ class UIController {
         const bounds = { width: window.innerWidth, height: window.innerHeight };
         const positions = PatternGenerator.generate(type, actualCount, bounds, scale);
         
+        let firstNewPoint = null;
         positions.forEach((pos, index) => {
-            const point = this.engine.addPoint(pos.x, pos.y, {
+            // Apply grid snapping if grid is visible
+            let finalX = pos.x, finalY = pos.y;
+            if (this.animationManager.showGrid) {
+                const gridSpacing = this.renderer.skipFactor * 10;
+                const snapped = Utils.snapToGrid(pos.x, pos.y, gridSpacing);
+                finalX = snapped.x;
+                finalY = snapped.y;
+            }
+            
+            const point = this.engine.addPoint(finalX, finalY, {
                 creationIndex: this.engine.creationCounter++,
                 phaseOffset: this.engine.pointPhaseOffset * (this.engine.creationCounter - 1)
             });
             if (point) {
                 point.startTime = this.engine.time - (index * 0.1);
+                if (!firstNewPoint) firstNewPoint = point;
             }
         });
         
-        if (positions.length > 0) {
-            const allPoints = this.engine.getAllPoints();
-            const firstNew = allPoints[allPoints.length - positions.length];
-            if (firstNew) this.selectPoint(firstNew.id);
-            
+        if (firstNewPoint) {
+            this.selectPoint(firstNewPoint.id);
             this.animationManager.setShowPoints(true);
             this.updateButton('showPointsToggle', true);
             if (!this.animationManager.isAnimating) {
@@ -1940,35 +2015,31 @@ class UIController {
     }
     
     clonePoint() {
-        const selectedPoints = this.getSelectedPoints();
-        if (selectedPoints.length === 0) return;
+        const selectedPoint = this.getSelectedPoint();
+        if (!selectedPoint) return;
         
         const bounds = { width: window.innerWidth, height: window.innerHeight };
-        const newPoints = [];
+        const pos = PatternGenerator.findRandomPosition(this.engine.getAllPoints(), bounds);
         
-        selectedPoints.forEach(selected => {
-            const availableSlots = CONFIG.maxPoints - this.engine.points.size;
-            if (availableSlots <= 0) return;
-            
-            const pos = PatternGenerator.findRandomPosition(this.engine.getAllPoints(), bounds);
-            const clone = this.engine.addPoint(pos.x, pos.y, {
-                ...selected.getProperties(),
-                creationIndex: this.engine.creationCounter++,
-                phaseOffset: this.engine.pointPhaseOffset * (this.engine.creationCounter - 1)
-            });
-            
-            if (clone) {
-                clone.startTime = this.engine.time;
-                newPoints.push(clone);
-                Utils.showVisual(pos.x, pos.y, 'clone-flash');
-            }
+        // Apply grid snapping if grid is visible
+        let finalX = pos.x, finalY = pos.y;
+        if (this.animationManager.showGrid) {
+            const gridSpacing = this.renderer.skipFactor * 10;
+            const snapped = Utils.snapToGrid(pos.x, pos.y, gridSpacing);
+            finalX = snapped.x;
+            finalY = snapped.y;
+        }
+        
+        const clone = this.engine.addPoint(finalX, finalY, {
+            ...selectedPoint.getProperties(),
+            creationIndex: this.engine.creationCounter++,
+            phaseOffset: this.engine.pointPhaseOffset * (this.engine.creationCounter - 1)
         });
         
-        if (newPoints.length > 0) {
-            this.deselectAll();
-            newPoints.forEach((point, index) => {
-                this.selectPoint(point.id, index > 0);
-            });
+        if (clone) {
+            clone.startTime = this.engine.time;
+            this.selectPoint(clone.id);
+            Utils.showVisual(finalX, finalY, 'clone-flash');
             
             if (!this.animationManager.isAnimating) {
                 this.animationManager.start();
@@ -1981,30 +2052,25 @@ class UIController {
     }
     
     deletePoint() {
-        const selectedPoints = this.getSelectedPoints();
-        selectedPoints.forEach(point => {
-            this.removePoint(point.id);
-        });
+        const selectedPoint = this.getSelectedPoint();
+        if (selectedPoint) {
+            this.removePoint(selectedPoint.id);
+        }
     }
     
     toggleWaveType() {
-        const selectedPoints = this.getSelectedPoints();
-        if (selectedPoints.length > 0) {
-            selectedPoints.forEach(point => {
-                point.waveType = point.waveType === 'sine' ? 'step' : 'sine';
-            });
+        const selectedPoint = this.getSelectedPoint();
+        if (selectedPoint) {
+            selectedPoint.waveType = selectedPoint.waveType === 'sine' ? 'step' : 'sine';
             this.updateSelectedPointUI();
             this.updatePointsUI();
         }
     }
     
     updatePointProperty(property, value) {
-        const selectedPoints = this.getSelectedPoints();
-        if (selectedPoints.length > 0) {
-            selectedPoints.forEach(point => {
-                point[property] = value;
-            });
-            this.updateSelectedPointUI();
+        const selectedPoint = this.getSelectedPoint();
+        if (selectedPoint) {
+            selectedPoint[property] = value;
             this.updatePointsUI();
         }
     }
@@ -2034,10 +2100,7 @@ class UIController {
         if (this.engine.points.size === 0) return;
         
         this.engine.syncPoints();
-        
-        // Reset UI controls
-        document.getElementById('pointPhaseOffsetSlider').value = 0;
-        this.updateSliderValue('pointPhaseOffsetValue', '0');
+        this.inputController.updatePair('pointPhaseOffsetSlider', 'pointPhaseOffsetValue', 0);
         
         if (!this.animationManager.isAnimating) {
             this.animationManager.start();
@@ -2089,8 +2152,8 @@ class UIController {
             this.closePanel();
         }
         
-        const selected = this.getSelectedPoints();
-        if (selected.length > 0) {
+        const selectedPoint = this.getSelectedPoint();
+        if (selectedPoint) {
             if (e.key === 'Delete' || e.key === 'Backspace') {
                 e.preventDefault();
                 this.deletePoint();
@@ -2140,74 +2203,71 @@ class UIController {
     }
     
     updateSelectedPointUI() {
-        const selectedPoints = this.getSelectedPoints();
-        this.elements.selectedPointSection.style.display = selectedPoints.length > 0 ? 'block' : 'none';
-        if (selectedPoints.length === 0) return;
+        const selectedPoint = this.getSelectedPoint();
+        this.elements.selectedPointSection.style.display = selectedPoint ? 'block' : 'none';
         
-        if (selectedPoints.length > 1) {
-            this.elements.selectedPointId.textContent = `${selectedPoints.length} Points Selected`;
-            
-            // Show average values
-            const avgAmplitude = Math.round(selectedPoints.reduce((sum, p) => sum + p.amplitude, 0) / selectedPoints.length);
-            const avgWavelength = Math.round(selectedPoints.reduce((sum, p) => sum + p.wavelength, 0) / selectedPoints.length);
-            const avgSpeed = selectedPoints.reduce((sum, p) => sum + p.speed, 0) / selectedPoints.length;
-            
-            document.getElementById('pointAmplitude').value = avgAmplitude;
-            document.getElementById('pointAmplitudeValue').textContent = avgAmplitude;
-            document.getElementById('pointWavelength').value = avgWavelength;
-            document.getElementById('pointWavelengthValue').textContent = avgWavelength + 'px';
-            document.getElementById('pointSpeed').value = avgSpeed;
-            document.getElementById('pointSpeedValue').textContent = Utils.formatValue(avgSpeed, 1);
-            
-            const firstType = selectedPoints[0].waveType;
-            const allSameType = selectedPoints.every(p => p.waveType === firstType);
-            
-            if (allSameType) {
-                this.updateButton('pointWaveTypeToggle', firstType === 'sine');
-            } else {
-                document.getElementById('pointWaveTypeToggle').classList.remove('active');
-            }
-        } else {
-            const point = selectedPoints[0];
-            this.elements.selectedPointId.textContent = point.getDisplayName();
-            
-            document.getElementById('pointAmplitude').value = point.amplitude;
-            document.getElementById('pointAmplitudeValue').textContent = point.amplitude;
-            document.getElementById('pointWavelength').value = point.wavelength;
-            document.getElementById('pointWavelengthValue').textContent = point.wavelength + 'px';
-            document.getElementById('pointSpeed').value = point.speed;
-            document.getElementById('pointSpeedValue').textContent = Utils.formatValue(point.speed, 1);
-            
-            this.updateButton('pointWaveTypeToggle', point.waveType === 'sine');
-        }
+        if (!selectedPoint) return;
+        
+        this.elements.selectedPointId.textContent = selectedPoint.getDisplayName();
+        
+        // Update controls to match selected point
+        this.inputController.updatePair('pointAmplitude', 'pointAmplitudeValue', selectedPoint.amplitude);
+        this.inputController.updatePair('pointWavelength', 'pointWavelengthValue', selectedPoint.wavelength);
+        this.inputController.updatePair('pointSpeed', 'pointSpeedValue', selectedPoint.speed);
+        
+        this.updateButton('pointWaveTypeToggle', selectedPoint.waveType === 'sine');
     }
     
     updatePerformanceInfo() {
         const info = this.renderer.getPerformanceInfo();
-        this.updateSliderValue('performanceValue', info.label);
         this.elements.performanceInfo.textContent = `Resolution: ${info.resolution}`;
+    }
+    
+    initializeInputDisplays() {
+        // Initialize all input fields with their slider's current values
+        const sliderPairs = [
+            ['pointAmplitude', 'pointAmplitudeValue'],
+            ['pointWavelength', 'pointWavelengthValue'],
+            ['pointSpeed', 'pointSpeedValue'],
+            ['hue1Slider', 'hue1Value'],
+            ['hue2Slider', 'hue2Value'],
+            ['pointPhaseOffsetSlider', 'pointPhaseOffsetValue'],
+            ['dampingSlider', 'dampingValue'],
+            ['performanceSlider', 'performanceValue'],
+            ['patternCount', 'patternCountValue'],
+            ['patternScale', 'patternScaleValue']
+        ];
+        
+        sliderPairs.forEach(([sliderId, inputId]) => {
+            const slider = document.getElementById(sliderId);
+            const input = document.getElementById(inputId);
+            if (slider && input) {
+                const fieldType = this.inputController.getFieldType(sliderId);
+                const value = parseFloat(slider.value);
+                input.value = Utils.formatInputValue(value, fieldType);
+            }
+        });
     }
 }
 
 // ====================================================================
-// INTERACTION MANAGER CLASS
+// INTERACTION MANAGER CLASS - SIMPLIFIED
 // ====================================================================
 class InteractionManager {
     constructor(canvas, uiController) {
         this.canvas = canvas;
         this.ui = uiController;
         
-        // State
+        // State - REMOVED: multi-select tracking
         this.isDragging = false;
         this.dragPoint = null;
         this.startPos = { x: 0, y: 0 };
         this.longPressTimer = null;
         this.isLongPressing = false;
-        this.lastTapTime = 0;
-        this.lastTapPoint = null;
         
         // Elements
         this.indicator = document.getElementById('longPressIndicator');
+        this.snapPreview = document.getElementById('snapPreview');
         
         this.setupEvents();
     }
@@ -2240,35 +2300,17 @@ class InteractionManager {
         this.startPos = coords;
         
         const hitPoint = this.ui.engine.findPointAt(coords.x, coords.y);
-        const isMultiSelect = event.ctrlKey || event.shiftKey;
         
         if (hitPoint) {
-            // Check for mobile multi-select (double-tap on existing point when points are visible)
-            const currentTime = performance.now();
-            const isDoubleTap = this.ui.animationManager.showPoints && 
-                               this.lastTapPoint === hitPoint && 
-                               (currentTime - this.lastTapTime) < 300;
-            
-            if (isDoubleTap) {
-                Utils.showVisual(coords.x, coords.y, 'multi-select-indicator');
-                this.ui.selectPoint(hitPoint.id, true);
-                this.lastTapTime = 0;
-                this.lastTapPoint = null;
-            } else {
-                this.ui.selectPoint(hitPoint.id, isMultiSelect);
-                this.isDragging = true;
-                this.dragPoint = hitPoint;
-                this.canvas.style.cursor = 'grabbing';
-                this.lastTapTime = currentTime;
-                this.lastTapPoint = hitPoint;
-            }
+            // SIMPLIFIED: Just select and start dragging
+            this.ui.selectPoint(hitPoint.id);
+            this.isDragging = true;
+            this.dragPoint = hitPoint;
+            this.canvas.style.cursor = 'grabbing';
         } else {
-            if (!isMultiSelect) {
-                this.startLongPress(coords.x, coords.y);
-                this.ui.deselectAll();
-            }
-            this.lastTapTime = 0;
-            this.lastTapPoint = null;
+            // SIMPLIFIED: Just deselect and start long press
+            this.startLongPress(coords.x, coords.y);
+            this.ui.deselectAll();
         }
     }
     
@@ -2283,20 +2325,8 @@ class InteractionManager {
         if (this.isDragging && this.dragPoint) {
             event.preventDefault();
             if (dist > 5) {
-                // Move all selected points if dragging a selected point
-                const selectedPoints = this.ui.getSelectedPoints();
-                if (selectedPoints.includes(this.dragPoint)) {
-                    const deltaX = coords.x - this.dragPoint.x;
-                    const deltaY = coords.y - this.dragPoint.y;
-                    
-                    selectedPoints.forEach(point => {
-                        point.x += deltaX;
-                        point.y += deltaY;
-                    });
-                } else {
-                    this.dragPoint.x = coords.x;
-                    this.dragPoint.y = coords.y;
-                }
+                this.dragPoint.x = coords.x;
+                this.dragPoint.y = coords.y;
                 this.ui.animationManager.forceRender();
             }
         }
@@ -2321,6 +2351,15 @@ class InteractionManager {
             this.indicator.classList.add('active');
         }
         
+        // Show snap preview if grid is visible
+        if (this.ui.animationManager.showGrid && this.snapPreview) {
+            const gridSpacing = this.ui.renderer.skipFactor * 10;
+            const snapped = Utils.snapToGrid(x, y, gridSpacing);
+            this.snapPreview.style.left = `${snapped.x}px`;
+            this.snapPreview.style.top = `${snapped.y}px`;
+            this.snapPreview.style.opacity = '1';
+        }
+        
         this.longPressTimer = setTimeout(() => {
             if (this.isLongPressing) {
                 this.completeLongPress(x, y);
@@ -2337,7 +2376,16 @@ class InteractionManager {
             setTimeout(() => this.indicator.classList.remove('complete'), 300);
         }
         
-        this.ui.addPoint(x, y);
+        // Use snapped coordinates if grid is visible
+        let finalX = x, finalY = y;
+        if (this.ui.animationManager.showGrid) {
+            const gridSpacing = this.ui.renderer.skipFactor * 10;
+            const snapped = Utils.snapToGrid(x, y, gridSpacing);
+            finalX = snapped.x;
+            finalY = snapped.y;
+        }
+        
+        this.ui.addPoint(finalX, finalY);
         this.cancelLongPress();
     }
     
@@ -2350,6 +2398,10 @@ class InteractionManager {
         
         if (this.indicator) {
             this.indicator.classList.remove('active', 'complete');
+        }
+        
+        if (this.snapPreview) {
+            this.snapPreview.style.opacity = '0';
         }
     }
     
@@ -2375,7 +2427,7 @@ class WaveSimulation {
         this.uiController = new UIController(this.engine, this.animationManager, this.renderer);
         this.interactionManager = new InteractionManager(this.canvas, this.uiController);
         
-        console.log('Wave simulation initialized with refactored architecture');
+        console.log('Wave simulation initialized - refactored version');
     }
 }
 
