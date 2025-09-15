@@ -1451,7 +1451,7 @@ class Renderer {
         }
         this.ctx.putImageData(this.imageData, 0, 0);
         if (showGrid) {
-            this.renderGrid();
+            this.renderGrid(engine);
         }
         this.renderPoints(engine.getAllPoints(), showPoints, selectedPoint);
     }
@@ -1495,11 +1495,13 @@ class Renderer {
         }
     }
     
-    renderGrid() {
+    renderGrid(engine) {
         const { width, height } = this.canvas;
         const gridSpacing = this.skipFactor * 10; // Grid spacing proportional to performance level
         
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        // Adaptive opacity: brighter when fewer points exist
+        const baseOpacity = 0.2 + (0.3 * (1 - engine.points.size / CONFIG.maxPoints));
+        this.ctx.strokeStyle = `rgba(255, 255, 255, ${baseOpacity})`;
         this.ctx.lineWidth = 1;
         this.ctx.beginPath();
         
