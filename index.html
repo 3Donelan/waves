@@ -370,33 +370,6 @@ body {
     transform: translateX(26px);
 }
 
-.color-schemes {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.color-scheme {
-    width: 60px;
-    height: 30px;
-    border-radius: 6px;
-    cursor: pointer;
-    border: 2px solid var(--border-primary);
-    transition: 0.2s ease;
-    flex-shrink: 0;
-}
-
-.color-scheme:hover {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
-}
-
-.color-scheme.selected {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 12px rgba(0, 255, 136, 0.5);
-    transform: scale(1.05);
-}
-
 .info-text {
     font-size: 11px;
     opacity: 0.6;
@@ -815,6 +788,12 @@ body {
                     <div class="toggle-circle"></div>
                 </div>
             </div>
+            <div class="control-group">
+                <label class="control-label">Show Grid</label>
+                <div class="toggle-switch" id="showGridToggle">
+                    <div class="toggle-circle"></div>
+                </div>
+            </div>
         </div>
         <div class="button-group" style="margin-top: 10px;">
             <button class="control-button toggle-button" id="playPauseBtn">Pause</button>
@@ -837,7 +816,7 @@ body {
         <div class="control-group">
             <label class="control-label">Number of Points</label>
             <div class="slider-container">
-                <input type="range" class="slider" id="patternCount" min="4" max="36" step="1" value="16">
+                <input type="range" class="slider" id="patternCount" min="3" max="36" step="1" value="16">
                 <div class="slider-value" id="patternCountValue">16</div>
             </div>
         </div>
@@ -870,9 +849,10 @@ body {
             
             <div class="control-group">
                 <label class="control-label">Wave Type</label>
-                <div class="button-group">
-                    <button class="control-button toggle-button active" id="pointWaveTypeBtn">Sine</button>
+                <div class="toggle-switch" id="pointWaveTypeToggle">
+                    <div class="toggle-circle"></div>
                 </div>
+                <div class="info-text">Sine wave (on) / Digital wave (off)</div>
             </div>
             
             <div class="control-group">
@@ -921,17 +901,24 @@ body {
         </div>
         
         <div class="control-group" id="colorControls" style="display: none;">
-            <label class="control-label">Color Schemes</label>
-            <div class="color-schemes">
-                <div class="color-scheme" data-scheme="0" style="background: linear-gradient(to right, #0064ff, #ff6400);" title="Blue-Orange"></div>
-                <div class="color-scheme" data-scheme="1" style="background: linear-gradient(to right, #dc1414, #14dc14);" title="Red-Green"></div>
-                <div class="color-scheme" data-scheme="2" style="background: linear-gradient(to right, #800080, #ffff00);" title="Purple-Yellow"></div>
-                <div class="color-scheme" data-scheme="3" style="background: linear-gradient(to right, #00ffff, #ff00ff);" title="Cyan-Magenta"></div>
-                <div class="color-scheme" data-scheme="4" style="background: linear-gradient(to right, #003366, #ffd700);" title="Navy-Gold"></div>
-                <div class="color-scheme" data-scheme="5" style="background: linear-gradient(to right, #32cd32, #8a2be2);" title="Lime-Violet"></div>
-                <div class="color-scheme" data-scheme="6" style="background: linear-gradient(to right, #008080, #ff7f50);" title="Teal-Coral"></div>
-                <div class="color-scheme" data-scheme="7" style="background: linear-gradient(to right, #dc143c, #40e0d0);" title="Crimson-Turquoise"></div>
+            <label class="control-label">Minima Color (Hue)</label>
+            <div class="slider-container">
+                <input type="range" class="slider" id="hue1Slider" min="0" max="360" step="1" value="185">
+                <div class="slider-value" id="hue1Value">185°</div>
             </div>
+        </div>
+        
+        <div class="control-group" id="colorControls2" style="display: none;">
+            <label class="control-label">Maxima Color (Hue)</label>
+            <div class="slider-container">
+                <input type="range" class="slider" id="hue2Slider" min="0" max="360" step="1" value="285">
+                <div class="slider-value" id="hue2Value">285°</div>
+            </div>
+        </div>
+        
+        <div class="control-group" id="colorPreview" style="display: none;">
+            <label class="control-label">Color Preview</label>
+            <div id="gradientPreview" style="width: 100%; height: 20px; border-radius: 4px; background: linear-gradient(to right, hsl(185, 70%, 50%), hsl(285, 70%, 50%)); border: 1px solid rgba(255, 255, 255, 0.2);"></div>
         </div>
         
         <div class="control-group">
@@ -1000,50 +987,7 @@ const CONFIG = {
         radial: 'Radial', 
         spiral: 'Spiral',
         sunflower: 'Sunflower'
-    },
-    
-    colorSchemes: [
-        {
-            name: 'Blue-Orange',
-            minima: { r: 0, g: 100, b: 255 },    // #0064ff
-            maxima: { r: 255, g: 100, b: 0 }     // #ff6400
-        },
-        {
-            name: 'Red-Green', 
-            minima: { r: 220, g: 20, b: 20 },    // #dc1414
-            maxima: { r: 20, g: 220, b: 20 }     // #14dc14
-        },
-        {
-            name: 'Purple-Yellow',
-            minima: { r: 128, g: 0, b: 128 },    // #800080
-            maxima: { r: 255, g: 255, b: 0 }     // #ffff00
-        },
-        {
-            name: 'Cyan-Magenta',
-            minima: { r: 0, g: 255, b: 255 },    // #00ffff
-            maxima: { r: 255, g: 0, b: 255 }     // #ff00ff
-        },
-        {
-            name: 'Navy-Gold',
-            minima: { r: 0, g: 51, b: 102 },     // #003366
-            maxima: { r: 255, g: 215, b: 0 }     // #ffd700
-        },
-        {
-            name: 'Lime-Violet',
-            minima: { r: 50, g: 205, b: 50 },    // #32cd32
-            maxima: { r: 138, g: 43, b: 226 }    // #8a2be2
-        },
-        {
-            name: 'Teal-Coral',
-            minima: { r: 0, g: 128, b: 128 },    // #008080
-            maxima: { r: 255, g: 127, b: 80 }    // #ff7f50
-        },
-        {
-            name: 'Crimson-Turquoise',
-            minima: { r: 220, g: 20, b: 60 },    // #dc143c
-            maxima: { r: 64, g: 224, b: 208 }    // #40e0d0
-        }
-    ]
+    }
 };
 
 // ====================================================================
@@ -1333,10 +1277,9 @@ class WaveEngine {
         this.pointPhaseOffset = 0;
         this.mediumDamping = CONFIG.defaults.damping;
         this.creationCounter = 0;
-        this.color1 = CONFIG.colorSchemes[0].minima; // Default to Blue-Orange scheme
-        this.color2 = CONFIG.colorSchemes[0].maxima;
+        this.hue1 = 185; // Default hues 
+        this.hue2 = 285;
         this.useColor = false;
-        this.selectedColorScheme = 0;
     }
     
     addPoint(x, y, properties = {}) {
@@ -1429,13 +1372,8 @@ class WaveEngine {
         }
         
         const normalizedValue = Utils.clamp((waveValue / 100 + 1) / 2, 0, 1);
-        
-        // Interpolate between color1 and color2 using RGB
-        const r = Math.round(this.color1.r + (this.color2.r - this.color1.r) * normalizedValue);
-        const g = Math.round(this.color1.g + (this.color2.g - this.color1.g) * normalizedValue);
-        const b = Math.round(this.color1.b + (this.color2.b - this.color1.b) * normalizedValue);
-        
-        return { r, g, b };
+        const interpolatedHue = Utils.lerpHue(this.hue1, this.hue2, normalizedValue);
+        return Utils.hslToRgb(interpolatedHue, 70, 50);
     }
     
     updateTime(deltaTime) {
@@ -1446,17 +1384,14 @@ class WaveEngine {
         this.useColor = enabled;
     }
     
-    setColors(color1, color2) {
-        this.color1 = color1;
-        this.color2 = color2;
+    setColors(hue1, hue2) {
+        this.hue1 = hue1;
+        this.hue2 = hue2;
     }
     
-    setColorScheme(schemeIndex) {
-        if (schemeIndex >= 0 && schemeIndex < CONFIG.colorSchemes.length) {
-            this.selectedColorScheme = schemeIndex;
-            const scheme = CONFIG.colorSchemes[schemeIndex];
-            this.setColors(scheme.minima, scheme.maxima);
-        }
+    setHues(hue1, hue2) {
+        this.hue1 = hue1;
+        this.hue2 = hue2;
     }
     
     setPointPhaseOffset(offset) {
@@ -1491,12 +1426,15 @@ class Renderer {
         this.skipFactor = CONFIG.performanceLevels[level].skip;
     }
     
-    render(engine, showPoints, selectedPoints) {
+    render(engine, showPoints, showGrid, selectedPoints) {
         this.clearCanvas();
         if (engine.points.size > 0) {
             this.renderWaveField(engine);
         }
         this.ctx.putImageData(this.imageData, 0, 0);
+        if (showGrid) {
+            this.renderGrid();
+        }
         this.renderPoints(engine.getAllPoints(), showPoints, selectedPoints);
     }
     
@@ -1537,6 +1475,29 @@ class Renderer {
                 }
             }
         }
+    }
+    
+    renderGrid() {
+        const { width, height } = this.canvas;
+        const gridSpacing = this.skipFactor * 10; // Grid spacing proportional to performance level
+        
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        
+        // Vertical lines
+        for (let x = gridSpacing; x < width; x += gridSpacing) {
+            this.ctx.moveTo(x, 0);
+            this.ctx.lineTo(x, height);
+        }
+        
+        // Horizontal lines
+        for (let y = gridSpacing; y < height; y += gridSpacing) {
+            this.ctx.moveTo(0, y);
+            this.ctx.lineTo(width, y);
+        }
+        
+        this.ctx.stroke();
     }
     
     renderPoints(allPoints, showPoints, selectedPoints) {
@@ -1598,6 +1559,7 @@ class AnimationManager {
         this.lastFrameTime = 0;
         this.frameInterval = CONFIG.frameInterval;
         this.showPoints = CONFIG.defaults.showPoints;
+        this.showGrid = false;
         this.selectedPoints = [];
     }
     
@@ -1626,7 +1588,7 @@ class AnimationManager {
         
         if (this.isAnimating && (currentTime - this.lastFrameTime) >= this.frameInterval) {
             this.engine.updateTime(0.2);
-            this.renderer.render(this.engine, this.showPoints, this.selectedPoints);
+            this.renderer.render(this.engine, this.showPoints, this.showGrid, this.selectedPoints);
             this.lastFrameTime = currentTime;
         }
         
@@ -1637,16 +1599,21 @@ class AnimationManager {
     
     setShowPoints(show) {
         this.showPoints = show;
-        this.renderer.render(this.engine, this.showPoints, this.selectedPoints);
+        this.renderer.render(this.engine, this.showPoints, this.showGrid, this.selectedPoints);
+    }
+    
+    setShowGrid(show) {
+        this.showGrid = show;
+        this.renderer.render(this.engine, this.showPoints, this.showGrid, this.selectedPoints);
     }
     
     setSelectedPoints(points) {
         this.selectedPoints = points;
-        this.renderer.render(this.engine, this.showPoints, this.selectedPoints);
+        this.renderer.render(this.engine, this.showPoints, this.showGrid, this.selectedPoints);
     }
     
     forceRender() {
-        this.renderer.render(this.engine, this.showPoints, this.selectedPoints);
+        this.renderer.render(this.engine, this.showPoints, this.showGrid, this.selectedPoints);
     }
 }
 
@@ -1670,11 +1637,11 @@ class UIController {
             'helpBtn', 'menuToggle', 'panelOverlay', 'controlPanel',
             'welcomeOverlay', 'welcomeStartBtn', 'healthWarningOverlay',
             'healthBackBtn', 'healthContinueBtn', 'helpOverlay', 'helpCloseBtn',
-            'clearBtn', 'playPauseBtn', 'syncBtn', 'showPointsToggle',
-            'generatePatternBtn', 'pointWaveTypeBtn', 'clonePointBtn',
+            'clearBtn', 'playPauseBtn', 'syncBtn', 'showPointsToggle', 'showGridToggle',
+            'generatePatternBtn', 'pointWaveTypeToggle', 'clonePointBtn',
             'deletePointBtn', 'applyToAllBtn', 'colorToggle',
             'pointList', 'selectedPointSection', 'selectedPointId',
-            'stats', 'colorControls', 'performanceInfo'
+            'stats', 'colorControls', 'colorControls2', 'colorPreview', 'performanceInfo'
         ];
         
         const elements = {};
@@ -1701,17 +1668,25 @@ class UIController {
         this.elements.playPauseBtn.addEventListener('click', () => this.toggleAnimation());
         this.elements.syncBtn.addEventListener('click', () => this.syncPoints());
         this.elements.showPointsToggle.addEventListener('click', () => this.toggleShowPoints());
+        this.elements.showGridToggle.addEventListener('click', () => this.toggleShowGrid());
         this.elements.generatePatternBtn.addEventListener('click', () => this.generatePattern());
-        this.elements.pointWaveTypeBtn.addEventListener('click', () => this.toggleWaveType());
+        this.elements.pointWaveTypeToggle.addEventListener('click', () => this.toggleWaveType());
         this.elements.clonePointBtn.addEventListener('click', () => this.clonePoint());
         this.elements.deletePointBtn.addEventListener('click', () => this.deletePoint());
         this.elements.applyToAllBtn.addEventListener('click', () => this.applyToAllPoints());
         this.elements.colorToggle.addEventListener('click', () => this.toggleColorMode());
         
-        // Color scheme selection
-        document.querySelectorAll('.color-scheme').forEach((element, index) => {
-            element.addEventListener('click', () => this.selectColorScheme(index));
-        });
+        // Hue sliders
+        this.setupSlider('hue1Slider', (v) => { 
+            this.engine.hue1 = parseInt(v); 
+            this.updateColorPreview(); 
+            this.animationManager.forceRender(); 
+        }, 0, '°');
+        this.setupSlider('hue2Slider', (v) => { 
+            this.engine.hue2 = parseInt(v); 
+            this.updateColorPreview(); 
+            this.animationManager.forceRender(); 
+        }, 0, '°');
         
         // Sliders
         this.setupSliders();
@@ -1863,9 +1838,11 @@ class UIController {
         this.selectedIds.clear();
         this.animationManager.stop();
         this.animationManager.setShowPoints(false);
+        this.animationManager.setShowGrid(false);
         this.updatePointsUI();
         this.updateSelectedPointUI();
         this.updateButton('showPointsToggle', false);
+        this.updateButton('showGridToggle', false);
         this.updateButton('playPauseBtn', true, 'Play', 'Pause');
         this.animationManager.forceRender();
     }
@@ -2028,8 +2005,8 @@ class UIController {
         const amplitude = parseInt(document.getElementById('pointAmplitude').value);
         const wavelength = parseInt(document.getElementById('pointWavelength').value);
         const speed = parseFloat(document.getElementById('pointSpeed').value);
-        const waveTypeBtn = document.getElementById('pointWaveTypeBtn');
-        const waveType = waveTypeBtn.classList.contains('active') ? 'sine' : 'step';
+        const waveTypeToggle = document.getElementById('pointWaveTypeToggle');
+        const waveType = waveTypeToggle.classList.contains('active') ? 'sine' : 'step';
         
         for (const point of this.engine.getAllPoints()) {
             point.amplitude = amplitude;
@@ -2071,6 +2048,12 @@ class UIController {
         this.updateButton('showPointsToggle', newState);
     }
     
+    toggleShowGrid() {
+        const newState = !this.animationManager.showGrid;
+        this.animationManager.setShowGrid(newState);
+        this.updateButton('showGridToggle', newState);
+    }
+    
     toggleColorMode() {
         const newState = !this.engine.useColor;
         this.engine.setColorMode(newState);
@@ -2079,17 +2062,11 @@ class UIController {
         this.animationManager.forceRender();
     }
     
-    selectColorScheme(schemeIndex) {
-        this.engine.setColorScheme(schemeIndex);
-        this.updateColorSchemeSelection(schemeIndex);
-        this.animationManager.forceRender();
-        Utils.haptic();
-    }
-    
-    updateColorSchemeSelection(selectedIndex) {
-        document.querySelectorAll('.color-scheme').forEach((element, index) => {
-            element.classList.toggle('selected', index === selectedIndex);
-        });
+    updateColorPreview() {
+        const preview = document.getElementById('gradientPreview');
+        if (preview) {
+            preview.style.background = `linear-gradient(to right, hsl(${this.engine.hue1}, 70%, 50%), hsl(${this.engine.hue2}, 70%, 50%))`;
+        }
     }
     
     setPerformanceLevel(level) {
@@ -2126,10 +2103,14 @@ class UIController {
     }
     
     updateColorControls() {
-        this.elements.colorControls.style.display = this.engine.useColor ? 'block' : 'none';
+        const controls = ['colorControls', 'colorControls2', 'colorPreview'];
+        controls.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.style.display = this.engine.useColor ? 'block' : 'none';
+        });
         
         if (this.engine.useColor) {
-            this.updateColorSchemeSelection(this.engine.selectedColorScheme);
+            this.updateColorPreview();
         }
     }
     
@@ -2172,10 +2153,9 @@ class UIController {
             const allSameType = selectedPoints.every(p => p.waveType === firstType);
             
             if (allSameType) {
-                this.updateButton('pointWaveTypeBtn', firstType === 'sine', 'Sine', 'Digital');
+                this.updateButton('pointWaveTypeToggle', firstType === 'sine');
             } else {
-                document.getElementById('pointWaveTypeBtn').textContent = 'Mixed';
-                document.getElementById('pointWaveTypeBtn').classList.remove('active');
+                document.getElementById('pointWaveTypeToggle').classList.remove('active');
             }
         } else {
             const point = selectedPoints[0];
@@ -2188,7 +2168,7 @@ class UIController {
             document.getElementById('pointSpeed').value = point.speed;
             document.getElementById('pointSpeedValue').textContent = Utils.formatValue(point.speed, 1);
             
-            this.updateButton('pointWaveTypeBtn', point.waveType === 'sine', 'Sine', 'Digital');
+            this.updateButton('pointWaveTypeToggle', point.waveType === 'sine');
         }
     }
     
