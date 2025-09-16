@@ -1597,7 +1597,7 @@ class Renderer {
         
         if (point.inDeletionZone && point.deletionTimer) {
             const elapsed = performance.now() - point.deletionTimer;
-            deletionProgress = Math.min(elapsed / 1000, 1); // 1 second timer
+            deletionProgress = Math.min(elapsed / 500, 1); // 0.5 second timer
             
             // Point gets redder and larger as deletion approaches
             const redIntensity = Math.floor(255 * deletionProgress);
@@ -2379,7 +2379,7 @@ class InteractionManager {
         this.isLongPressing = false;
         this.inDeletionZone = false;
         this.deletionTimer = null;
-        this.deletionDuration = 500; // 1/2 second
+        this.deletionDuration = 500; // 0.5 seconds
         
         // Elements
         this.indicator = document.getElementById('longPressIndicator');
@@ -2507,7 +2507,7 @@ class InteractionManager {
             
             this.isDragging = false;
             this.dragPoint = null;
-            this.canvas.style.cursor = 'crosshair';
+            this.canvas.style.cursor = ''; // Clear inline style to use CSS green crosshair
             
             // Hide deletion zone visuals
             this.updateDeletionZoneVisuals(false);
@@ -2582,7 +2582,7 @@ class InteractionManager {
     cleanup() {
         this.isDragging = false;
         this.dragPoint = null;
-        this.canvas.style.cursor = 'crosshair';
+        this.canvas.style.cursor = ''; // Clear inline style to use CSS green crosshair
         this.cancelLongPress();
         this.cancelDeletionTimer();
         this.updateDeletionZoneVisuals(false);
@@ -2607,7 +2607,7 @@ class InteractionManager {
                 // Clean up drag state
                 this.isDragging = false;
                 this.dragPoint = null;
-                this.canvas.style.cursor = 'crosshair';
+                this.canvas.style.cursor = ''; // Clear inline style to use CSS green crosshair
                 this.updateDeletionZoneVisuals(false);
                 this.inDeletionZone = false;
             }
