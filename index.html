@@ -82,6 +82,46 @@ body {
     animation: snapPulse 0.5s ease-out infinite alternate;
 }
 
+.deletion-zone {
+    position: fixed;
+    pointer-events: none;
+    z-index: 500;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.deletion-zone.active {
+    opacity: 1;
+}
+
+.deletion-edge-top, .deletion-edge-bottom {
+    left: 0;
+    width: 100vw;
+    height: 4px;
+    background: linear-gradient(to bottom, rgba(255, 68, 68, 0.8), transparent);
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.6);
+}
+
+.deletion-edge-top { top: 0; }
+.deletion-edge-bottom { 
+    bottom: 0; 
+    background: linear-gradient(to top, rgba(255, 68, 68, 0.8), transparent);
+}
+
+.deletion-edge-left, .deletion-edge-right {
+    top: 0;
+    height: 100vh;
+    width: 4px;
+    background: linear-gradient(to right, rgba(255, 68, 68, 0.8), transparent);
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.6);
+}
+
+.deletion-edge-left { left: 0; }
+.deletion-edge-right { 
+    right: 0;
+    background: linear-gradient(to left, rgba(255, 68, 68, 0.8), transparent);
+}
+
 @keyframes longPressGrow {
     from { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
     to { opacity: 1; transform: translate(-50%, -50%) scale(1.2); border-color: var(--color-primary); box-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
@@ -656,6 +696,11 @@ body {
 <div class="visual-indicator long-press-indicator" id="longPressIndicator"></div>
 <div class="visual-indicator snap-preview" id="snapPreview"></div>
 
+<div class="deletion-zone deletion-edge-top" id="deletionTop"></div>
+<div class="deletion-zone deletion-edge-bottom" id="deletionBottom"></div>
+<div class="deletion-zone deletion-edge-left" id="deletionLeft"></div>
+<div class="deletion-zone deletion-edge-right" id="deletionRight"></div>
+
 <div class="modal-overlay" id="welcomeOverlay">
     <div class="modal">
         <div class="modal-header">
@@ -858,7 +903,15 @@ body {
     </div>
     
     <div class="control-section" id="selectedPointSection" style="display: none;">
-        <div class="section-title">Selected Point</div>
+        <div class="section-title">
+            <span id="editModeIndicator">Selected Point</span>
+            <div class="control-group" style="margin-top: 10px;">
+                <label class="control-label">
+                    <input type="checkbox" id="singleEditMode" style="margin-right: 8px;">
+                    Edit Selected Only
+                </label>
+            </div>
+        </div>
         <div class="point-section">
             <div class="point-header">
                 <span class="point-id" id="selectedPointId">Point #1</span>
@@ -899,10 +952,6 @@ body {
             <div class="button-group">
                 <button class="control-button secondary" id="clonePointBtn">Clone Point</button>
                 <button class="control-button danger" id="deletePointBtn">Delete Point</button>
-            </div>
-            
-            <div class="button-group" style="margin-top: 10px;">
-                <button class="control-button primary" id="applyToAllBtn">Apply to All Points</button>
             </div>
         </div>
     </div>
@@ -1541,16 +1590,34 @@ class Renderer {
             this.ctx.stroke();
         }
         
+        // Calculate deletion countdown visual feedback
+        let deletionProgress = 0;
+        let finalRadius = visualRadius;
+        let pointColor = 'white';
+        
+        if (point.inDeletionZone && point.deletionTimer) {
+            const elapsed = performance.now() - point.deletionTimer;
+            deletionProgress = Math.min(elapsed / 1000, 1); // 1 second timer
+            
+            // Point gets redder and larger as deletion approaches
+            const redIntensity = Math.floor(255 * deletionProgress);
+            const whiteIntensity = Math.floor(255 * (1 - deletionProgress));
+            pointColor = `rgb(255, ${whiteIntensity}, ${whiteIntensity})`;
+            finalRadius = visualRadius + (deletionProgress * 4); // Grow up to 4px larger
+        } else if (point.inDeletionZone) {
+            pointColor = '#ff4444'; // Static red when in zone but no timer
+        }
+        
         // Draw border (dark outline)
         this.ctx.fillStyle = '#333333';
         this.ctx.beginPath();
-        this.ctx.arc(point.x, point.y, visualRadius + borderWidth, 0, 2 * Math.PI);
+        this.ctx.arc(point.x, point.y, finalRadius + borderWidth, 0, 2 * Math.PI);
         this.ctx.fill();
         
-        // Draw main dot (white)
-        this.ctx.fillStyle = 'white';
+        // Draw main dot with countdown feedback
+        this.ctx.fillStyle = pointColor;
         this.ctx.beginPath();
-        this.ctx.arc(point.x, point.y, visualRadius, 0, 2 * Math.PI);
+        this.ctx.arc(point.x, point.y, finalRadius, 0, 2 * Math.PI);
         this.ctx.fill();
     }
     
@@ -1722,6 +1789,7 @@ class UIController {
         this.renderer = renderer;
         this.selectedPointId = null; // Single selection only
         this.panelOpen = false;
+        this.singleEditMode = false; // New: track edit mode
         this.elements = this.cacheElements();
         this.inputController = new InputController();
         this.setupEventListeners();
@@ -1736,8 +1804,8 @@ class UIController {
             'healthBackBtn', 'healthContinueBtn', 'helpOverlay', 'helpCloseBtn',
             'clearBtn', 'playPauseBtn', 'syncBtn', 'showPointsToggle', 'showGridToggle',
             'generatePatternBtn', 'pointWaveTypeToggle', 'clonePointBtn',
-            'deletePointBtn', 'applyToAllBtn', 'colorToggle',
-            'pointList', 'selectedPointSection', 'selectedPointId',
+            'deletePointBtn', 'colorToggle', 'singleEditMode',
+            'pointList', 'selectedPointSection', 'selectedPointId', 'editModeIndicator',
             'stats', 'colorControls', 'colorControls2', 'colorPreview', 'performanceInfo'
         ];
         
@@ -1770,8 +1838,8 @@ class UIController {
         this.elements.pointWaveTypeToggle.addEventListener('click', () => this.toggleWaveType());
         this.elements.clonePointBtn.addEventListener('click', () => this.clonePoint());
         this.elements.deletePointBtn.addEventListener('click', () => this.deletePoint());
-        this.elements.applyToAllBtn.addEventListener('click', () => this.applyToAllPoints());
         this.elements.colorToggle.addEventListener('click', () => this.toggleColorMode());
+        this.elements.singleEditMode.addEventListener('change', (e) => this.setSingleEditMode(e.target.checked));
         
         // Point list
         this.elements.pointList.addEventListener('click', (e) => {
@@ -1900,6 +1968,8 @@ class UIController {
             if (point) point.selected = false;
         }
         this.selectedPointId = null;
+        this.singleEditMode = false; // Reset single edit mode when deselecting
+        this.elements.singleEditMode.checked = false;
         this.updateSelectedPointUI();
         this.updatePointsUI();
         this.animationManager.setSelectedPoint(null);
@@ -2061,41 +2131,45 @@ class UIController {
     }
     
     toggleWaveType() {
-        const selectedPoint = this.getSelectedPoint();
-        if (selectedPoint) {
-            selectedPoint.waveType = selectedPoint.waveType === 'sine' ? 'step' : 'sine';
-            this.updateSelectedPointUI();
+        if (this.singleEditMode) {
+            // Single edit mode: only update selected point
+            const selectedPoint = this.getSelectedPoint();
+            if (selectedPoint) {
+                selectedPoint.waveType = selectedPoint.waveType === 'sine' ? 'step' : 'sine';
+                this.updateSelectedPointUI();
+                this.updatePointsUI();
+            }
+        } else {
+            // Bulk edit mode: update all points
+            const waveTypeToggle = document.getElementById('pointWaveTypeToggle');
+            const newWaveType = waveTypeToggle.classList.contains('active') ? 'step' : 'sine';
+            for (const point of this.engine.getAllPoints()) {
+                point.waveType = newWaveType;
+            }
             this.updatePointsUI();
         }
     }
     
     updatePointProperty(property, value) {
-        const selectedPoint = this.getSelectedPoint();
-        if (selectedPoint) {
-            selectedPoint[property] = value;
+        if (this.singleEditMode) {
+            // Single edit mode: only update selected point
+            const selectedPoint = this.getSelectedPoint();
+            if (selectedPoint) {
+                selectedPoint[property] = value;
+                this.updatePointsUI();
+            }
+        } else {
+            // Bulk edit mode: update all points
+            for (const point of this.engine.getAllPoints()) {
+                point[property] = value;
+            }
             this.updatePointsUI();
         }
     }
     
     applyToAllPoints() {
-        if (this.engine.points.size === 0) return;
-        
-        const amplitude = parseInt(document.getElementById('pointAmplitude').value);
-        const wavelength = parseInt(document.getElementById('pointWavelength').value);
-        const speed = parseFloat(document.getElementById('pointSpeed').value);
-        const waveTypeToggle = document.getElementById('pointWaveTypeToggle');
-        const waveType = waveTypeToggle.classList.contains('active') ? 'sine' : 'step';
-        
-        for (const point of this.engine.getAllPoints()) {
-            point.amplitude = amplitude;
-            point.wavelength = wavelength;
-            point.speed = speed;
-            point.waveType = waveType;
-        }
-        
-        this.updatePointsUI();
-        Utils.haptic();
-        this.animationManager.forceRender();
+        // This function is obsolete with single/bulk edit mode system
+        // Functionality is now handled by the default bulk edit mode
     }
     
     syncPoints() {
@@ -2212,17 +2286,54 @@ class UIController {
         
         this.elements.selectedPointId.textContent = selectedPoint.getDisplayName();
         
-        // Update controls to match selected point
-        this.inputController.updatePair('pointAmplitude', 'pointAmplitudeValue', selectedPoint.amplitude);
-        this.inputController.updatePair('pointWavelength', 'pointWavelengthValue', selectedPoint.wavelength);
-        this.inputController.updatePair('pointSpeed', 'pointSpeedValue', selectedPoint.speed);
+        // Update edit mode indicator
+        this.updateEditModeIndicator();
         
-        this.updateButton('pointWaveTypeToggle', selectedPoint.waveType === 'sine');
+        // Update controls to match selected point (in single edit mode) or show average (in bulk edit mode)
+        if (this.singleEditMode) {
+            // Show selected point's properties
+            this.inputController.updatePair('pointAmplitude', 'pointAmplitudeValue', selectedPoint.amplitude);
+            this.inputController.updatePair('pointWavelength', 'pointWavelengthValue', selectedPoint.wavelength);
+            this.inputController.updatePair('pointSpeed', 'pointSpeedValue', selectedPoint.speed);
+            this.updateButton('pointWaveTypeToggle', selectedPoint.waveType === 'sine');
+        } else {
+            // Show average values of all points
+            const allPoints = this.engine.getAllPoints();
+            if (allPoints.length > 0) {
+                const avgAmplitude = Math.round(allPoints.reduce((sum, p) => sum + p.amplitude, 0) / allPoints.length);
+                const avgWavelength = Math.round(allPoints.reduce((sum, p) => sum + p.wavelength, 0) / allPoints.length);
+                const avgSpeed = allPoints.reduce((sum, p) => sum + p.speed, 0) / allPoints.length;
+                
+                this.inputController.updatePair('pointAmplitude', 'pointAmplitudeValue', avgAmplitude);
+                this.inputController.updatePair('pointWavelength', 'pointWavelengthValue', avgWavelength);
+                this.inputController.updatePair('pointSpeed', 'pointSpeedValue', avgSpeed);
+                
+                // Show wave type toggle based on majority
+                const sineCount = allPoints.filter(p => p.waveType === 'sine').length;
+                this.updateButton('pointWaveTypeToggle', sineCount > allPoints.length / 2);
+            }
+        }
     }
     
     updatePerformanceInfo() {
         const info = this.renderer.getPerformanceInfo();
         this.elements.performanceInfo.textContent = `Resolution: ${info.resolution}`;
+    }
+    
+    setSingleEditMode(enabled) {
+        this.singleEditMode = enabled;
+        this.updateEditModeIndicator();
+    }
+    
+    updateEditModeIndicator() {
+        const selectedPoint = this.getSelectedPoint();
+        if (selectedPoint) {
+            if (this.singleEditMode) {
+                this.elements.editModeIndicator.textContent = `Editing: ${selectedPoint.getDisplayName()}`;
+            } else {
+                this.elements.editModeIndicator.textContent = `Editing: All Points (${this.engine.points.size} total)`;
+            }
+        }
     }
     
     initializeInputDisplays() {
@@ -2260,16 +2371,25 @@ class InteractionManager {
         this.canvas = canvas;
         this.ui = uiController;
         
-        // State - REMOVED: multi-select tracking
+        // State
         this.isDragging = false;
         this.dragPoint = null;
         this.startPos = { x: 0, y: 0 };
         this.longPressTimer = null;
         this.isLongPressing = false;
+        this.inDeletionZone = false;
+        this.deletionTimer = null;
+        this.deletionDuration = 500; // 1/2 second
         
         // Elements
         this.indicator = document.getElementById('longPressIndicator');
         this.snapPreview = document.getElementById('snapPreview');
+        this.deletionZones = {
+            top: document.getElementById('deletionTop'),
+            bottom: document.getElementById('deletionBottom'),
+            left: document.getElementById('deletionLeft'),
+            right: document.getElementById('deletionRight')
+        };
         
         this.setupEvents();
     }
@@ -2327,8 +2447,47 @@ class InteractionManager {
         if (this.isDragging && this.dragPoint) {
             event.preventDefault();
             if (dist > 5) {
-                this.dragPoint.x = coords.x;
-                this.dragPoint.y = coords.y;
+                let finalX = coords.x;
+                let finalY = coords.y;
+                
+                // Apply grid snapping during drag if grid is visible
+                if (this.ui.animationManager.showGrid) {
+                    const gridSpacing = this.ui.renderer.skipFactor * 10;
+                    const snapped = Utils.snapToGrid(coords.x, coords.y, gridSpacing);
+                    finalX = snapped.x;
+                    finalY = snapped.y;
+                }
+                
+                // Check for deletion zone (50px from edge)
+                const deletionMargin = 50;
+                const inDeletionZone = (
+                    finalX < deletionMargin || 
+                    finalX > this.canvas.width - deletionMargin ||
+                    finalY < deletionMargin || 
+                    finalY > this.canvas.height - deletionMargin
+                );
+                
+                // Update deletion zone visual feedback
+                if (inDeletionZone !== this.inDeletionZone) {
+                    this.inDeletionZone = inDeletionZone;
+                    this.updateDeletionZoneVisuals(inDeletionZone);
+                    
+                    // Start deletion timer when entering zone
+                    if (inDeletionZone && !this.deletionTimer) {
+                        this.startDeletionTimer();
+                    }
+                    
+                    // Cancel deletion timer when leaving zone
+                    if (!inDeletionZone && this.deletionTimer) {
+                        this.cancelDeletionTimer();
+                    }
+                }
+                
+                // Update point color for deletion feedback
+                this.dragPoint.inDeletionZone = inDeletionZone;
+                
+                this.dragPoint.x = finalX;
+                this.dragPoint.y = finalY;
                 this.ui.animationManager.forceRender();
             }
         }
@@ -2337,9 +2496,22 @@ class InteractionManager {
     handleEnd(event) {
         if (this.isDragging) {
             event.preventDefault();
+            
+            // Cancel any pending deletion timer
+            this.cancelDeletionTimer();
+            
+            // Clear deletion zone flag
+            if (this.dragPoint) {
+                this.dragPoint.inDeletionZone = false;
+            }
+            
             this.isDragging = false;
             this.dragPoint = null;
             this.canvas.style.cursor = 'crosshair';
+            
+            // Hide deletion zone visuals
+            this.updateDeletionZoneVisuals(false);
+            this.inDeletionZone = false;
         }
         this.cancelLongPress();
     }
@@ -2412,6 +2584,52 @@ class InteractionManager {
         this.dragPoint = null;
         this.canvas.style.cursor = 'crosshair';
         this.cancelLongPress();
+        this.cancelDeletionTimer();
+        this.updateDeletionZoneVisuals(false);
+    }
+    
+    updateDeletionZoneVisuals(active) {
+        Object.values(this.deletionZones).forEach(zone => {
+            if (zone) {
+                zone.classList.toggle('active', active);
+            }
+        });
+    }
+    
+    startDeletionTimer() {
+        if (this.deletionTimer) return; // Prevent multiple timers
+        
+        this.deletionTimer = setTimeout(() => {
+            if (this.dragPoint && this.isDragging) {
+                Utils.haptic();
+                this.ui.removePoint(this.dragPoint.id);
+                
+                // Clean up drag state
+                this.isDragging = false;
+                this.dragPoint = null;
+                this.canvas.style.cursor = 'crosshair';
+                this.updateDeletionZoneVisuals(false);
+                this.inDeletionZone = false;
+            }
+            this.deletionTimer = null;
+        }, this.deletionDuration);
+        
+        // Add visual countdown feedback to point
+        if (this.dragPoint) {
+            this.dragPoint.deletionTimer = performance.now();
+        }
+    }
+    
+    cancelDeletionTimer() {
+        if (this.deletionTimer) {
+            clearTimeout(this.deletionTimer);
+            this.deletionTimer = null;
+        }
+        
+        // Clear visual countdown feedback
+        if (this.dragPoint) {
+            this.dragPoint.deletionTimer = null;
+        }
     }
 }
 
