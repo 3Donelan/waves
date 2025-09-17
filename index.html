@@ -74,14 +74,6 @@ body {
     animation: pulseOut 0.5s ease-out;
 }
 
-.snap-preview {
-    width: 16px;
-    height: 16px;
-    border: 2px solid var(--color-secondary);
-    background: rgba(0, 136, 255, 0.3);
-    animation: snapPulse 0.5s ease-out infinite alternate;
-}
-
 .deletion-zone {
     position: fixed;
     pointer-events: none;
@@ -694,7 +686,7 @@ body {
 <canvas id="canvas"></canvas>
 
 <div class="visual-indicator long-press-indicator" id="longPressIndicator"></div>
-<div class="visual-indicator snap-preview" id="snapPreview"></div>
+
 
 <div class="deletion-zone deletion-edge-top" id="deletionTop"></div>
 <div class="deletion-zone deletion-edge-bottom" id="deletionBottom"></div>
@@ -841,9 +833,12 @@ body {
     </div>
     
     <div class="control-section">
-        <div class="section-title">Animation</div>
+        <div class="section-title">Quick Controls</div>
         <div class="button-group">
-            <button class="control-button" id="syncBtn">Sync</button>
+            <button class="control-button primary" id="syncBtn">Sync</button>
+            <button class="control-button" id="clearBtn">Clear All</button>
+        </div>
+        <div class="button-group" style="margin-top: 10px;">
             <div class="control-group">
                 <label class="control-label">Show Points</label>
                 <div class="toggle-switch" id="showPointsToggle">
@@ -857,107 +852,27 @@ body {
                 </div>
             </div>
         </div>
-        <div class="button-group" style="margin-top: 10px;">
-            <button class="control-button toggle-button" id="playPauseBtn">Pause</button>
-            <button class="control-button" id="clearBtn">Clear All</button>
-        </div>
         <div class="info-text" id="stats">Points: 0</div>
     </div>
     
     <div class="control-section">
-        <div class="section-title">Pattern Generator</div>
+        <div class="section-title">Medium Properties</div>
+        
         <div class="control-group">
-            <label class="control-label">Pattern Type</label>
-            <select id="patternType" class="select-input">
-                <option value="grid">Grid</option>
-                <option value="radial">Radial</option>
-                <option value="spiral">Spiral</option>
-                <option value="sunflower">Sunflower</option>
-            </select>
-        </div>
-        <div class="control-group">
-            <label class="control-label">Number of Points</label>
+            <label class="control-label">Animation Speed</label>
             <div class="slider-container">
-                <input type="range" class="slider" id="patternCount" min="3" max="36" step="1" value="16">
-                <input type="number" class="slider-value" id="patternCountValue" min="3" max="36" value="16">
+                <input type="range" class="slider" id="timeMultiplierSlider" min="0.0" max="30.0" step="0.1" value="10.0">
+                <input type="number" class="slider-value" id="timeMultiplierValue" min="0.0" max="30.0" step="0.1" value="10.0">
             </div>
         </div>
+        
         <div class="control-group">
-            <label class="control-label">Pattern Scale</label>
+            <label class="control-label">Damping</label>
             <div class="slider-container">
-                <input type="range" class="slider" id="patternScale" min="0.3" max="2.0" step="0.1" value="1.0">
-                <input type="number" class="slider-value" id="patternScaleValue" min="0.3" max="2.0" step="0.1" value="1.0">
+                <input type="range" class="slider" id="dampingSlider" min="0.0" max="0.03" step="0.002" value="0.008">
+                <input type="number" class="slider-value" id="dampingValue" min="0.0" max="0.03" step="0.002" value="0.008">
             </div>
         </div>
-        <div class="button-group">
-            <button class="control-button pattern" id="generatePatternBtn">Add Pattern</button>
-        </div>
-        <div class="info-text">Adds to existing points (max 36 total)</div>
-    </div>
-    
-    <div class="control-section">
-        <div class="section-title">Point List</div>
-        <div class="point-list" id="pointList">
-            <div class="empty-state">No points created</div>
-        </div>
-    </div>
-    
-    <div class="control-section" id="selectedPointSection" style="display: none;">
-        <div class="section-title">
-            <span id="editModeIndicator">Selected Point</span>
-            <div class="control-group" style="margin-top: 10px;">
-                <label class="control-label">
-                    <input type="checkbox" id="singleEditMode" style="margin-right: 8px;">
-                    Edit Selected Only
-                </label>
-            </div>
-        </div>
-        <div class="point-section">
-            <div class="point-header">
-                <span class="point-id" id="selectedPointId">Point #1</span>
-            </div>
-            
-            <div class="control-group">
-                <label class="control-label">Wave Type</label>
-                <div class="toggle-switch" id="pointWaveTypeToggle">
-                    <div class="toggle-circle"></div>
-                </div>
-                <div class="info-text">Sine wave (on) / Digital wave (off)</div>
-            </div>
-            
-            <div class="control-group">
-                <label class="control-label">Amplitude</label>
-                <div class="slider-container">
-                    <input type="range" class="slider" id="pointAmplitude" min="10" max="100" step="5" value="60">
-                    <input type="number" class="slider-value" id="pointAmplitudeValue" min="10" max="100" value="60">
-                </div>
-            </div>
-            
-            <div class="control-group">
-                <label class="control-label">Wavelength</label>
-                <div class="slider-container">
-                    <input type="range" class="slider" id="pointWavelength" min="20" max="400" step="10" value="100">
-                    <input type="number" class="slider-value" id="pointWavelengthValue" min="20" max="400" value="100">
-                </div>
-            </div>
-            
-            <div class="control-group">
-                <label class="control-label">Propagation Speed</label>
-                <div class="slider-container">
-                    <input type="range" class="slider" id="pointSpeed" min="0.1" max="1.0" step="0.1" value="1.0">
-                    <input type="number" class="slider-value" id="pointSpeedValue" min="0.1" max="1.0" step="0.1" value="1.0">
-                </div>
-            </div>
-            
-            <div class="button-group">
-                <button class="control-button secondary" id="clonePointBtn">Clone Point</button>
-                <button class="control-button danger" id="deletePointBtn">Delete Point</button>
-            </div>
-        </div>
-    </div>
-    
-    <div class="control-section">
-        <div class="section-title">Medium</div>
         
         <div class="control-group">
             <label class="control-label">Color Mode</label>
@@ -996,14 +911,6 @@ body {
         </div>
         
         <div class="control-group">
-            <label class="control-label">Damping</label>
-            <div class="slider-container">
-                <input type="range" class="slider" id="dampingSlider" min="0.0" max="0.03" step="0.002" value="0.008">
-                <input type="number" class="slider-value" id="dampingValue" min="0.0" max="0.03" step="0.002" value="0.008">
-            </div>
-        </div>
-        
-        <div class="control-group">
             <label class="control-label">Resolution</label>
             <div class="slider-container">
                 <input type="range" class="slider" id="performanceSlider" min="0" max="5" step="1" value="2">
@@ -1011,6 +918,98 @@ body {
             </div>
             <div class="stats-text" id="performanceInfo">Resolution: calculating...</div>
         </div>
+    </div>
+    
+    <div class="control-section" id="pointPropertiesSection">
+        <div class="section-title">
+            <span id="editModeIndicator">Point Properties</span>
+            <div class="control-group" id="singleEditContainer" style="display: none;">
+                <label class="control-label">
+                    <input type="checkbox" id="singleEditMode" style="margin-right: 8px;">
+                    Edit Selected Only
+                </label>
+            </div>
+        </div>
+        <div class="point-section">
+            <div class="point-header" id="selectedPointHeader" style="display: none;">
+                <span class="point-id" id="selectedPointId">Point #1</span>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">Wave Type</label>
+                <div class="toggle-switch" id="pointWaveTypeToggle">
+                    <div class="toggle-circle"></div>
+                </div>
+                <div class="info-text">Sine wave (on) / Digital wave (off)</div>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">Amplitude</label>
+                <div class="slider-container">
+                    <input type="range" class="slider" id="pointAmplitude" min="10" max="100" step="5" value="60">
+                    <input type="number" class="slider-value" id="pointAmplitudeValue" min="10" max="100" value="60">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">Wavelength</label>
+                <div class="slider-container">
+                    <input type="range" class="slider" id="pointWavelength" min="20" max="400" step="10" value="100">
+                    <input type="number" class="slider-value" id="pointWavelengthValue" min="20" max="400" value="100">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">Phase Velocity</label>
+                <div class="slider-container">
+                    <input type="range" class="slider" id="pointSpeed" min="0.1" max="1.0" step="0.1" value="1.0">
+                    <input type="number" class="slider-value" id="pointSpeedValue" min="0.1" max="1.0" step="0.1" value="1.0">
+                </div>
+            </div>
+            
+            <div class="button-group" id="pointActionButtons" style="display: none;">
+                <button class="control-button secondary" id="clonePointBtn">Clone Point</button>
+                <button class="control-button danger" id="deletePointBtn">Delete Point</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="control-section">
+        <div class="section-title">Point List</div>
+        <div class="point-list" id="pointList">
+            <div class="empty-state">No points created</div>
+        </div>
+    </div>
+    
+    <div class="control-section">
+        <div class="section-title">Pattern Generator</div>
+        <div class="control-group">
+            <label class="control-label">Pattern Type</label>
+            <select id="patternType" class="select-input">
+                <option value="grid">Grid</option>
+                <option value="radial">Radial</option>
+                <option value="spiral">Spiral</option>
+                <option value="sunflower">Sunflower</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label class="control-label">Number of Points</label>
+            <div class="slider-container">
+                <input type="range" class="slider" id="patternCount" min="3" max="36" step="1" value="16">
+                <input type="number" class="slider-value" id="patternCountValue" min="3" max="36" value="16">
+            </div>
+        </div>
+        <div class="control-group">
+            <label class="control-label">Pattern Scale</label>
+            <div class="slider-container">
+                <input type="range" class="slider" id="patternScale" min="0.3" max="2.0" step="0.1" value="1.0">
+                <input type="number" class="slider-value" id="patternScaleValue" min="0.3" max="2.0" step="0.1" value="1.0">
+            </div>
+        </div>
+        <div class="button-group">
+            <button class="control-button pattern" id="generatePatternBtn">Add Pattern</button>
+        </div>
+        <div class="info-text">Adds to existing points (max 36 total)</div>
     </div>
 </div>
 
@@ -1049,7 +1048,8 @@ const CONFIG = {
         damping: { min: 0.0, max: 0.03, mid: 0.015 },
         performance: { min: 0, max: 5, mid: 3 },
         patternCount: { min: 3, max: 36, mid: 20 },
-        patternScale: { min: 0.3, max: 2.0, mid: 1.15 }
+        patternScale: { min: 0.3, max: 2.0, mid: 1.15 },
+        timeMultiplier: { min: 0.0, max: 30.0, mid: 10.0 }
     },
     
     performanceLevels: [
@@ -1118,6 +1118,8 @@ const Utils = {
                 return Math.round(value).toString();
             case 'damping':
                 return Utils.formatValue(value, 3); // Show 3 decimal places for damping
+            case 'timeMultiplier':
+                return Utils.formatValue(value, 1);
             case 'speed':
             case 'patternScale':
             case 'phaseOffset':
@@ -1315,6 +1317,7 @@ class WaveEngine {
         this.hue1 = 185; // Default hues 
         this.hue2 = 285;
         this.useColor = false;
+        this.timeMultiplier = 10.0; // Global animation speed multiplier
     }
     
     addPoint(x, y, properties = {}) {
@@ -1383,7 +1386,8 @@ class WaveEngine {
             if (age < 0) continue;
             
             const dist = point.distanceTo(x, y);
-            const phase = point.frequency * dist - point.speed * age + point.phaseOffset;
+            const k = (2 * Math.PI) / point.wavelength; // Wave number
+            const phase = k * dist - (point.speed * k) * age + point.phaseOffset;
             
             let waveValue;
             if (point.waveType === 'sine') {
@@ -1444,7 +1448,11 @@ class WaveEngine {
     }
     
     updateTime(deltaTime) {
-        this.time += deltaTime;
+        this.time += deltaTime * this.timeMultiplier;
+    }
+    
+    setTimeMultiplier(multiplier) {
+        this.timeMultiplier = multiplier;
     }
     
     setColorMode(enabled) {
@@ -1760,8 +1768,10 @@ class InputController {
             'dampingSlider': 'damping',
             'performanceSlider': 'performance',
             'patternCount': 'patternCount',
-            'patternScale': 'patternScale'
+            'patternScale': 'patternScale',
+            'timeMultiplierSlider': 'timeMultiplier'
         };
+        
         return fieldMap[id] || id;
     }
     
@@ -1802,10 +1812,11 @@ class UIController {
             'helpBtn', 'menuToggle', 'panelOverlay', 'controlPanel',
             'welcomeOverlay', 'welcomeStartBtn', 'healthWarningOverlay',
             'healthBackBtn', 'healthContinueBtn', 'helpOverlay', 'helpCloseBtn',
-            'clearBtn', 'playPauseBtn', 'syncBtn', 'showPointsToggle', 'showGridToggle',
+            'clearBtn', 'syncBtn', 'showPointsToggle', 'showGridToggle',
             'generatePatternBtn', 'pointWaveTypeToggle', 'clonePointBtn',
             'deletePointBtn', 'colorToggle', 'singleEditMode',
-            'pointList', 'selectedPointSection', 'selectedPointId', 'editModeIndicator',
+            'pointList', 'pointPropertiesSection', 'selectedPointId', 'editModeIndicator',
+            'selectedPointHeader', 'singleEditContainer', 'pointActionButtons',
             'stats', 'colorControls', 'colorControls2', 'colorPreview', 'performanceInfo'
         ];
         
@@ -1818,36 +1829,37 @@ class UIController {
     
     setupEventListeners() {
         // Modal management
-        this.elements.welcomeStartBtn.addEventListener('click', () => this.showHealthWarning());
-        this.elements.healthBackBtn.addEventListener('click', () => this.showWelcome());
-        this.elements.healthContinueBtn.addEventListener('click', () => this.startApp());
-        this.elements.helpBtn.addEventListener('click', () => this.showHelp());
-        this.elements.helpCloseBtn.addEventListener('click', () => this.hideHelp());
+        if (this.elements.welcomeStartBtn) this.elements.welcomeStartBtn.addEventListener('click', () => this.showHealthWarning());
+        if (this.elements.healthBackBtn) this.elements.healthBackBtn.addEventListener('click', () => this.showWelcome());
+        if (this.elements.healthContinueBtn) this.elements.healthContinueBtn.addEventListener('click', () => this.startApp());
+        if (this.elements.helpBtn) this.elements.helpBtn.addEventListener('click', () => this.showHelp());
+        if (this.elements.helpCloseBtn) this.elements.helpCloseBtn.addEventListener('click', () => this.hideHelp());
         
         // Panel management
-        this.elements.menuToggle.addEventListener('click', () => this.togglePanel());
-        this.elements.panelOverlay.addEventListener('click', () => this.closePanel());
+        if (this.elements.menuToggle) this.elements.menuToggle.addEventListener('click', () => this.togglePanel());
+        if (this.elements.panelOverlay) this.elements.panelOverlay.addEventListener('click', () => this.closePanel());
         
         // Control buttons
-        this.elements.clearBtn.addEventListener('click', () => this.clearAll());
-        this.elements.playPauseBtn.addEventListener('click', () => this.toggleAnimation());
-        this.elements.syncBtn.addEventListener('click', () => this.syncPoints());
-        this.elements.showPointsToggle.addEventListener('click', () => this.toggleShowPoints());
-        this.elements.showGridToggle.addEventListener('click', () => this.toggleShowGrid());
-        this.elements.generatePatternBtn.addEventListener('click', () => this.generatePattern());
-        this.elements.pointWaveTypeToggle.addEventListener('click', () => this.toggleWaveType());
-        this.elements.clonePointBtn.addEventListener('click', () => this.clonePoint());
-        this.elements.deletePointBtn.addEventListener('click', () => this.deletePoint());
-        this.elements.colorToggle.addEventListener('click', () => this.toggleColorMode());
-        this.elements.singleEditMode.addEventListener('change', (e) => this.setSingleEditMode(e.target.checked));
+        if (this.elements.clearBtn) this.elements.clearBtn.addEventListener('click', () => this.clearAll());
+        if (this.elements.syncBtn) this.elements.syncBtn.addEventListener('click', () => this.syncPoints());
+        if (this.elements.showPointsToggle) this.elements.showPointsToggle.addEventListener('click', () => this.toggleShowPoints());
+        if (this.elements.showGridToggle) this.elements.showGridToggle.addEventListener('click', () => this.toggleShowGrid());
+        if (this.elements.generatePatternBtn) this.elements.generatePatternBtn.addEventListener('click', () => this.generatePattern());
+        if (this.elements.pointWaveTypeToggle) this.elements.pointWaveTypeToggle.addEventListener('click', () => this.toggleWaveType());
+        if (this.elements.clonePointBtn) this.elements.clonePointBtn.addEventListener('click', () => this.clonePoint());
+        if (this.elements.deletePointBtn) this.elements.deletePointBtn.addEventListener('click', () => this.deletePoint());
+        if (this.elements.colorToggle) this.elements.colorToggle.addEventListener('click', () => this.toggleColorMode());
+        if (this.elements.singleEditMode) this.elements.singleEditMode.addEventListener('change', (e) => this.setSingleEditMode(e.target.checked));
         
         // Point list
-        this.elements.pointList.addEventListener('click', (e) => {
-            const item = e.target.closest('.point-item');
-            if (item) {
-                this.selectPoint(item.dataset.id);
-            }
-        });
+        if (this.elements.pointList) {
+            this.elements.pointList.addEventListener('click', (e) => {
+                const item = e.target.closest('.point-item');
+                if (item) {
+                    this.selectPoint(item.dataset.id);
+                }
+            });
+        }
         
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyboard(e));
@@ -1881,6 +1893,9 @@ class UIController {
         });
         
         // Medium controls
+        this.inputController.registerSliderPair('timeMultiplierSlider', 'timeMultiplierValue', (v) => {
+            this.engine.setTimeMultiplier(parseFloat(v));
+        });
         this.inputController.registerSliderPair('pointPhaseOffsetSlider', 'pointPhaseOffsetValue', (v) => {
             this.engine.setPointPhaseOffset(parseFloat(v) * Math.PI);
         });
@@ -1901,26 +1916,26 @@ class UIController {
     
     // Modal methods
     showWelcome() {
-        this.elements.welcomeOverlay.style.display = 'flex';
-        this.elements.healthWarningOverlay.style.display = 'none';
+        if (this.elements.welcomeOverlay) this.elements.welcomeOverlay.style.display = 'flex';
+        if (this.elements.healthWarningOverlay) this.elements.healthWarningOverlay.style.display = 'none';
     }
     
     showHealthWarning() {
-        this.elements.welcomeOverlay.style.display = 'none';
-        this.elements.healthWarningOverlay.style.display = 'flex';
+        if (this.elements.welcomeOverlay) this.elements.welcomeOverlay.style.display = 'none';
+        if (this.elements.healthWarningOverlay) this.elements.healthWarningOverlay.style.display = 'flex';
     }
     
     startApp() {
-        this.elements.healthWarningOverlay.style.display = 'none';
+        if (this.elements.healthWarningOverlay) this.elements.healthWarningOverlay.style.display = 'none';
         this.createStarterPoint();
     }
     
     showHelp() {
-        this.elements.helpOverlay.style.display = 'flex';
+        if (this.elements.helpOverlay) this.elements.helpOverlay.style.display = 'flex';
     }
     
     hideHelp() {
-        this.elements.helpOverlay.style.display = 'none';
+        if (this.elements.helpOverlay) this.elements.helpOverlay.style.display = 'none';
     }
     
     // Panel methods
@@ -1930,16 +1945,16 @@ class UIController {
     
     openPanel() {
         this.panelOpen = true;
-        this.elements.controlPanel.classList.add('open');
-        this.elements.panelOverlay.classList.add('active');
-        this.elements.menuToggle.classList.add('active');
+        if (this.elements.controlPanel) this.elements.controlPanel.classList.add('open');
+        if (this.elements.panelOverlay) this.elements.panelOverlay.classList.add('active');
+        if (this.elements.menuToggle) this.elements.menuToggle.classList.add('active');
     }
     
     closePanel() {
         this.panelOpen = false;
-        this.elements.controlPanel.classList.remove('open');
-        this.elements.panelOverlay.classList.remove('active');
-        this.elements.menuToggle.classList.remove('active');
+        if (this.elements.controlPanel) this.elements.controlPanel.classList.remove('open');
+        if (this.elements.panelOverlay) this.elements.panelOverlay.classList.remove('active');
+        if (this.elements.menuToggle) this.elements.menuToggle.classList.remove('active');
     }
     
     // Point management - SIMPLIFIED: Single selection only
@@ -1957,7 +1972,7 @@ class UIController {
             point.selected = true;
         }
         
-        this.updateSelectedPointUI();
+        this.updatePointPropertiesUI();
         this.updatePointsUI();
         this.animationManager.setSelectedPoint(point);
     }
@@ -1969,8 +1984,8 @@ class UIController {
         }
         this.selectedPointId = null;
         this.singleEditMode = false; // Reset single edit mode when deselecting
-        this.elements.singleEditMode.checked = false;
-        this.updateSelectedPointUI();
+        if (this.elements.singleEditMode) this.elements.singleEditMode.checked = false;
+        this.updatePointPropertiesUI();
         this.updatePointsUI();
         this.animationManager.setSelectedPoint(null);
     }
@@ -1983,14 +1998,15 @@ class UIController {
     clearAll() {
         this.engine.clearAll();
         this.selectedPointId = null;
+        this.singleEditMode = false;
+        if (this.elements.singleEditMode) this.elements.singleEditMode.checked = false;
         this.animationManager.stop();
         this.animationManager.setShowPoints(false);
         this.animationManager.setShowGrid(false);
         this.updatePointsUI();
-        this.updateSelectedPointUI();
+        this.updatePointPropertiesUI();
         this.updateButton('showPointsToggle', false);
         this.updateButton('showGridToggle', false);
-        this.updateButton('playPauseBtn', true, 'Play', 'Pause');
         this.animationManager.forceRender();
     }
     
@@ -2002,7 +2018,6 @@ class UIController {
             this.selectPoint(point.id);
             this.animationManager.start();
             this.updatePointsUI();
-            this.updateButton('playPauseBtn', false, 'Play', 'Pause');
         }
     }
     
@@ -2012,7 +2027,6 @@ class UIController {
             this.selectPoint(point.id);
             if (!this.animationManager.isAnimating && this.engine.points.size > 0) {
                 this.animationManager.start();
-                this.updateButton('playPauseBtn', false, 'Play', 'Pause');
             }
             this.updatePointsUI();
         }
@@ -2025,12 +2039,11 @@ class UIController {
         }
         this.engine.removePoint(id);
         this.updatePointsUI();
-        this.updateSelectedPointUI();
+        this.updatePointPropertiesUI();
         this.animationManager.setSelectedPoint(null);
         
         if (this.engine.points.size === 0) {
             this.animationManager.stop();
-            this.updateButton('playPauseBtn', true, 'Play', 'Pause');
         }
     }
     
@@ -2078,7 +2091,6 @@ class UIController {
             this.updateButton('showPointsToggle', true);
             if (!this.animationManager.isAnimating) {
                 this.animationManager.start();
-                this.updateButton('playPauseBtn', false, 'Play', 'Pause');
             }
         }
         
@@ -2115,7 +2127,6 @@ class UIController {
             
             if (!this.animationManager.isAnimating) {
                 this.animationManager.start();
-                this.updateButton('playPauseBtn', false, 'Play', 'Pause');
             }
         }
         
@@ -2136,7 +2147,7 @@ class UIController {
             const selectedPoint = this.getSelectedPoint();
             if (selectedPoint) {
                 selectedPoint.waveType = selectedPoint.waveType === 'sine' ? 'step' : 'sine';
-                this.updateSelectedPointUI();
+                this.updatePointPropertiesUI();
                 this.updatePointsUI();
             }
         } else {
@@ -2167,11 +2178,6 @@ class UIController {
         }
     }
     
-    applyToAllPoints() {
-        // This function is obsolete with single/bulk edit mode system
-        // Functionality is now handled by the default bulk edit mode
-    }
-    
     syncPoints() {
         if (this.engine.points.size === 0) return;
         
@@ -2180,15 +2186,9 @@ class UIController {
         
         if (!this.animationManager.isAnimating) {
             this.animationManager.start();
-            this.updateButton('playPauseBtn', false, 'Play', 'Pause');
         }
         
         this.animationManager.forceRender();
-    }
-    
-    toggleAnimation() {
-        this.animationManager.toggle();
-        this.updateButton('playPauseBtn', !this.animationManager.isAnimating, 'Play', 'Pause');
     }
     
     toggleShowPoints() {
@@ -2265,59 +2265,97 @@ class UIController {
     
     updatePointsUI() {
         const count = this.engine.points.size;
-        this.elements.stats.textContent = `Points: ${count}/${CONFIG.maxPoints}`;
+        if (this.elements.stats) {
+            this.elements.stats.textContent = `Points: ${count}/${CONFIG.maxPoints}`;
+        }
         
-        if (count === 0) {
-            this.elements.pointList.innerHTML = '<div class="empty-state">No points created</div>';
-        } else {
-            this.elements.pointList.innerHTML = this.engine.getAllPoints().map(point => `
-                <div class="point-item ${point.selected ? 'selected' : ''}" data-id="${point.id}">
-                    ${point.getDisplayName()} - ${point.waveType} (${point.amplitude})
-                </div>
-            `).join('');
+        if (this.elements.pointList) {
+            if (count === 0) {
+                this.elements.pointList.innerHTML = '<div class="empty-state">No points created</div>';
+            } else {
+                this.elements.pointList.innerHTML = this.engine.getAllPoints().map(point => `
+                    <div class="point-item ${point.selected ? 'selected' : ''}" data-id="${point.id}">
+                        ${point.getDisplayName()} - ${point.waveType} (${point.amplitude})
+                    </div>
+                `).join('');
+            }
         }
     }
     
-    updateSelectedPointUI() {
+    updatePointPropertiesUI() {
         const selectedPoint = this.getSelectedPoint();
-        this.elements.selectedPointSection.style.display = selectedPoint ? 'block' : 'none';
+        const allPoints = this.engine.getAllPoints();
         
-        if (!selectedPoint) return;
+        // Always show point properties section
+        if (this.elements.pointPropertiesSection) {
+            this.elements.pointPropertiesSection.style.display = 'block';
+        }
         
-        this.elements.selectedPointId.textContent = selectedPoint.getDisplayName();
+        // Show/hide single edit checkbox and selected point header based on selection
+        if (selectedPoint) {
+            if (this.elements.singleEditContainer) {
+                this.elements.singleEditContainer.style.display = 'block';
+            }
+            if (this.elements.selectedPointHeader) {
+                this.elements.selectedPointHeader.style.display = 'block';
+            }
+            if (this.elements.pointActionButtons) {
+                this.elements.pointActionButtons.style.display = 'flex';
+            }
+            if (this.elements.selectedPointId) {
+                this.elements.selectedPointId.textContent = selectedPoint.getDisplayName();
+            }
+            this.updateEditModeIndicator();
+        } else {
+            if (this.elements.singleEditContainer) {
+                this.elements.singleEditContainer.style.display = 'none';
+            }
+            if (this.elements.selectedPointHeader) {
+                this.elements.selectedPointHeader.style.display = 'none';
+            }
+            if (this.elements.pointActionButtons) {
+                this.elements.pointActionButtons.style.display = 'none';
+            }
+            if (this.elements.editModeIndicator) {
+                this.elements.editModeIndicator.textContent = allPoints.length > 0 ? 
+                    `Point Properties (${allPoints.length} total)` : 'Point Properties';
+            }
+        }
         
-        // Update edit mode indicator
-        this.updateEditModeIndicator();
-        
-        // Update controls to match selected point (in single edit mode) or show average (in bulk edit mode)
-        if (this.singleEditMode) {
-            // Show selected point's properties
+        // Update controls based on edit mode and available points
+        if (allPoints.length === 0) {
+            // No points - show default values but disable controls
+            this.inputController.updatePair('pointAmplitude', 'pointAmplitudeValue', CONFIG.defaults.amplitude);
+            this.inputController.updatePair('pointWavelength', 'pointWavelengthValue', CONFIG.defaults.wavelength);
+            this.inputController.updatePair('pointSpeed', 'pointSpeedValue', CONFIG.defaults.speed);
+            this.updateButton('pointWaveTypeToggle', CONFIG.defaults.waveType === 'sine');
+        } else if (this.singleEditMode && selectedPoint) {
+            // Single edit mode - show selected point's properties
             this.inputController.updatePair('pointAmplitude', 'pointAmplitudeValue', selectedPoint.amplitude);
             this.inputController.updatePair('pointWavelength', 'pointWavelengthValue', selectedPoint.wavelength);
             this.inputController.updatePair('pointSpeed', 'pointSpeedValue', selectedPoint.speed);
             this.updateButton('pointWaveTypeToggle', selectedPoint.waveType === 'sine');
         } else {
-            // Show average values of all points
-            const allPoints = this.engine.getAllPoints();
-            if (allPoints.length > 0) {
-                const avgAmplitude = Math.round(allPoints.reduce((sum, p) => sum + p.amplitude, 0) / allPoints.length);
-                const avgWavelength = Math.round(allPoints.reduce((sum, p) => sum + p.wavelength, 0) / allPoints.length);
-                const avgSpeed = allPoints.reduce((sum, p) => sum + p.speed, 0) / allPoints.length;
-                
-                this.inputController.updatePair('pointAmplitude', 'pointAmplitudeValue', avgAmplitude);
-                this.inputController.updatePair('pointWavelength', 'pointWavelengthValue', avgWavelength);
-                this.inputController.updatePair('pointSpeed', 'pointSpeedValue', avgSpeed);
-                
-                // Show wave type toggle based on majority
-                const sineCount = allPoints.filter(p => p.waveType === 'sine').length;
-                this.updateButton('pointWaveTypeToggle', sineCount > allPoints.length / 2);
-            }
+            // Bulk edit mode - show average values of all points
+            const avgAmplitude = Math.round(allPoints.reduce((sum, p) => sum + p.amplitude, 0) / allPoints.length);
+            const avgWavelength = Math.round(allPoints.reduce((sum, p) => sum + p.wavelength, 0) / allPoints.length);
+            const avgSpeed = allPoints.reduce((sum, p) => sum + p.speed, 0) / allPoints.length;
+            
+            this.inputController.updatePair('pointAmplitude', 'pointAmplitudeValue', avgAmplitude);
+            this.inputController.updatePair('pointWavelength', 'pointWavelengthValue', avgWavelength);
+            this.inputController.updatePair('pointSpeed', 'pointSpeedValue', avgSpeed);
+            
+            // Show wave type toggle based on majority
+            const sineCount = allPoints.filter(p => p.waveType === 'sine').length;
+            this.updateButton('pointWaveTypeToggle', sineCount > allPoints.length / 2);
         }
     }
     
     updatePerformanceInfo() {
         const info = this.renderer.getPerformanceInfo();
-        this.elements.performanceInfo.textContent = `Resolution: ${info.resolution}`;
+        if (this.elements.performanceInfo) {
+            this.elements.performanceInfo.textContent = `Resolution: ${info.resolution}`;
+        }
     }
     
     setSingleEditMode(enabled) {
@@ -2327,7 +2365,7 @@ class UIController {
     
     updateEditModeIndicator() {
         const selectedPoint = this.getSelectedPoint();
-        if (selectedPoint) {
+        if (selectedPoint && this.elements.editModeIndicator) {
             if (this.singleEditMode) {
                 this.elements.editModeIndicator.textContent = `Editing: ${selectedPoint.getDisplayName()}`;
             } else {
@@ -2344,6 +2382,7 @@ class UIController {
             ['pointSpeed', 'pointSpeedValue'],
             ['hue1Slider', 'hue1Value'],
             ['hue2Slider', 'hue2Value'],
+            ['timeMultiplierSlider', 'timeMultiplierValue'],
             ['pointPhaseOffsetSlider', 'pointPhaseOffsetValue'],
             ['dampingSlider', 'dampingValue'],
             ['performanceSlider', 'performanceValue'],
@@ -2360,6 +2399,9 @@ class UIController {
                 input.value = Utils.formatInputValue(value, fieldType);
             }
         });
+        
+        // Initialize always-visible point properties
+        this.updatePointPropertiesUI();
     }
 }
 
@@ -2380,6 +2422,12 @@ class InteractionManager {
         this.inDeletionZone = false;
         this.deletionTimer = null;
         this.deletionDuration = 500; // 0.5 seconds
+        
+        // Double-tap detection
+        this.lastTapTime = 0;
+        this.lastTapPos = { x: 0, y: 0 };
+        this.doubleTapWindow = 300; // 300ms window
+        this.doubleTapTolerance = 10; // 10px movement tolerance
         
         // Elements
         this.indicator = document.getElementById('longPressIndicator');
@@ -2422,15 +2470,26 @@ class InteractionManager {
         this.startPos = coords;
         
         const hitPoint = this.ui.engine.findPointAt(coords.x, coords.y);
+        const currentTime = performance.now();
+        
+        // Check for double-tap on point
+        if (hitPoint && this.isDoubleTap(coords, currentTime)) {
+            this.handleDoubleTap(hitPoint, coords);
+            return;
+        }
+        
+        // Update tap tracking for double-tap detection
+        this.lastTapTime = currentTime;
+        this.lastTapPos = { x: coords.x, y: coords.y };
         
         if (hitPoint) {
-            // SIMPLIFIED: Just select and start dragging
+            // Single tap on point - select and start dragging
             this.ui.selectPoint(hitPoint.id);
             this.isDragging = true;
             this.dragPoint = hitPoint;
             this.canvas.style.cursor = 'grabbing';
         } else {
-            // SIMPLIFIED: Just deselect and start long press
+            // Tap on empty space - deselect and start long press
             this.startLongPress(coords.x, coords.y);
             this.ui.deselectAll();
         }
@@ -2630,6 +2689,30 @@ class InteractionManager {
         if (this.dragPoint) {
             this.dragPoint.deletionTimer = null;
         }
+    }
+    
+    isDoubleTap(coords, currentTime) {
+        const timeDiff = currentTime - this.lastTapTime;
+        const distance = Utils.distance(coords.x, coords.y, this.lastTapPos.x, this.lastTapPos.y);
+        
+        return timeDiff < this.doubleTapWindow && distance < this.doubleTapTolerance;
+    }
+    
+    handleDoubleTap(point, coords) {
+        Utils.haptic();
+        
+        // Auto-select the point and clone it
+        this.ui.selectPoint(point.id);
+        
+        // Use existing clone functionality
+        this.ui.clonePoint();
+        
+        // Show visual feedback at original point location
+        Utils.showVisual(coords.x, coords.y, 'clone-flash');
+        
+        // Reset tap tracking to prevent triple-tap issues
+        this.lastTapTime = 0;
+        this.lastTapPos = { x: 0, y: 0 };
     }
 }
 
