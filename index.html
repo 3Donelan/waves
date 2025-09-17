@@ -190,7 +190,7 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 70vh;
+    height: 45vh;
     background: var(--bg-primary);
     backdrop-filter: blur(20px);
     border-top: 1px solid var(--border-primary);
@@ -543,33 +543,6 @@ body {
     color: var(--text-primary);
 }
 
-.point-list {
-    max-height: 300px;
-    overflow-y: auto;
-    border: 1px solid var(--border-primary);
-    border-radius: 8px;
-    background: var(--bg-secondary);
-}
-
-.point-item {
-    padding: 12px 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    cursor: pointer;
-    transition: background 0.2s ease;
-    font-size: 13px;
-    color: var(--text-primary);
-}
-
-.point-item:last-child {
-    border-bottom: none;
-}
-
-.point-item:hover { background: var(--bg-button); }
-.point-item.selected { 
-    background: rgba(0, 255, 136, 0.2);
-    border-left: 3px solid var(--color-primary);
-}
-
 .empty-state {
     text-align: center;
     opacity: 0.5;
@@ -767,7 +740,7 @@ body {
     }
     
     .bottom-sheet {
-        height: 60vh;
+        height: 40vh;
         transform: translateY(calc(100% - 50px));
     }
 
@@ -883,7 +856,7 @@ body {
                     <strong>Navigate:</strong> Swipe left/right or tap navigation segments
                 </div>
                 <div class="instruction-item">
-                    <strong>Panels:</strong> Quick Controls → Medium Properties → Pattern Generator → Edit Points → Point List
+                    <strong>Panels:</strong> Quick Controls → Medium Properties → Pattern Generator → Edit Points
                 </div>
             </div>
             
@@ -932,7 +905,6 @@ body {
             <div class="nav-segment" data-panel="1"></div>
             <div class="nav-segment" data-panel="2"></div>
             <div class="nav-segment" data-panel="3"></div>
-            <div class="nav-segment" data-panel="4"></div>
         </div>
     </div>
     
@@ -1089,14 +1061,6 @@ body {
                 
                 <div class="control-section">
                     <div class="control-group">
-                        <label class="control-label">Wave Type</label>
-                        <div class="toggle-switch" id="pointWaveTypeToggle">
-                            <div class="toggle-circle"></div>
-                        </div>
-                        <div class="info-text">Sine wave (on) / Square wave (off)</div>
-                    </div>
-                    
-                    <div class="control-group">
                         <label class="control-label">Amplitude</label>
                         <div class="slider-container">
                             <input type="range" class="slider" id="pointAmplitude" min="10" max="100" step="5" value="60">
@@ -1138,16 +1102,6 @@ body {
                 </div>
             </div>
             
-            <!-- Panel 5: Point List -->
-            <div class="panel" data-panel-id="4">
-                <div class="control-section">
-                    <div class="section-title">All Points</div>
-                    <div class="point-list" id="pointList">
-                        <div class="empty-state">No points created<br>Use + button or long-press on canvas</div>
-                    </div>
-                </div>
-            </div>
-            
         </div>
     </div>
 </div>
@@ -1171,7 +1125,6 @@ const CONFIG = {
         amplitude: 60,
         wavelength: 100,
         speed: 1.0,
-        waveType: 'sine',
         performanceLevel: 2,
         damping: 0.008,
         showPoints: false
@@ -1204,8 +1157,7 @@ const CONFIG = {
         'Quick Controls',
         'Medium Properties', 
         'Pattern Generator',
-        'Edit Points',
-        'Point List'
+        'Edit Points'
     ]
 };
 
@@ -1387,7 +1339,7 @@ class PatternGenerator {
 }
 
 // ====================================================================
-// WAVE POINT CLASS - REAL PHYSICS
+// WAVE POINT CLASS - SIMPLIFIED (NO WAVE TYPE)
 // ====================================================================
 class WavePoint {
     constructor(x, y, properties = {}) {
@@ -1399,7 +1351,6 @@ class WavePoint {
         this.amplitude = properties.amplitude || CONFIG.defaults.amplitude;
         this.wavelength = properties.wavelength || CONFIG.defaults.wavelength;
         this.speed = properties.speed || CONFIG.defaults.speed;
-        this.waveType = properties.waveType || CONFIG.defaults.waveType;
         this.phaseOffset = properties.phaseOffset || 0;
         this.creationIndex = properties.creationIndex || 0;
         
@@ -1413,7 +1364,6 @@ class WavePoint {
             amplitude: this.amplitude,
             wavelength: this.wavelength,
             speed: this.speed,
-            waveType: this.waveType,
             phaseOffset: this.phaseOffset
         };
     }
@@ -1436,7 +1386,7 @@ class WavePoint {
 }
 
 // ====================================================================
-// WAVE ENGINE CLASS - REAL PHYSICS
+// WAVE ENGINE CLASS - IMPROVED PHYSICS
 // ====================================================================
 class WaveEngine {
     constructor() {
@@ -1449,6 +1399,7 @@ class WaveEngine {
         this.hue2 = 285;
         this.useColor = false;
         this.timeMultiplier = 10.0;
+        this.useRealisticDecay = false;
     }
     
     addPoint(x, y, properties = {}) {
@@ -1509,7 +1460,7 @@ class WaveEngine {
         });
     }
     
-    // REAL WAVE PHYSICS CALCULATIONS
+    // SWITCHABLE PHYSICS: REALISTIC vs CREATIVE DECAY
     calculatePixel(x, y) {
         let totalWave = 0;
         
@@ -1521,15 +1472,20 @@ class WaveEngine {
             const k = (2 * Math.PI) / point.wavelength;
             const phase = k * dist - (point.speed * k) * age + point.phaseOffset;
             
-            let waveValue;
-            if (point.waveType === 'sine') {
-                waveValue = point.amplitude * Math.sin(phase);
+            // Only sine waves - simplified physics
+            let waveValue = point.amplitude * Math.sin(phase);
+            
+            // Apply decay based on realistic mode
+            if (this.useRealisticDecay) {
+                // Proper 2D wave physics with geometric spreading
+                const geometricDecay = 1 / Math.sqrt(dist + 1);
+                waveValue *= geometricDecay;
             } else {
-                const normalized = ((phase % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI);
-                waveValue = point.amplitude * (normalized < Math.PI ? 1 : -1);
+                // Original exponential approach with user-controlled damping
+                const exponentialDecay = Math.exp(-dist * this.mediumDamping);
+                waveValue *= exponentialDecay;
             }
             
-            waveValue *= Math.exp(-dist * this.mediumDamping);
             totalWave += waveValue;
         }
         
@@ -1603,6 +1559,10 @@ class WaveEngine {
     
     setDamping(damping) {
         this.mediumDamping = damping;
+    }
+    
+    setRealisticDecay(enabled) {
+        this.useRealisticDecay = enabled;
     }
 }
 
@@ -1921,7 +1881,7 @@ class InputController {
 }
 
 // ====================================================================
-// BOTTOM SHEET CONTROLLER
+// BOTTOM SHEET CONTROLLER - UPDATED FOR 4 PANELS
 // ====================================================================
 class BottomSheetController {
     constructor() {
@@ -2181,7 +2141,7 @@ class BottomSheetController {
 }
 
 // ====================================================================
-// INTERACTION MANAGER
+// INTERACTION MANAGER - ENHANCED CANVAS TAP BEHAVIOR
 // ====================================================================
 class InteractionManager {
     constructor(canvas, uiController) {
@@ -2258,7 +2218,16 @@ class InteractionManager {
             this.canvas.style.cursor = 'grabbing';
         } else {
             this.startLongPress(coords.x, coords.y);
-            this.ui.deselectAll();
+            
+            // ENHANCED CANVAS TAP BEHAVIOR: Check if bottom sheet is expanded
+            if (this.ui.bottomSheet.isExpanded) {
+                // If expanded, collapse AND deselect
+                this.ui.bottomSheet.collapse();
+                this.ui.deselectAll();
+            } else {
+                // If collapsed, just deselect
+                this.ui.deselectAll();
+            }
         }
     }
     
@@ -2444,7 +2413,7 @@ class InteractionManager {
 }
 
 // ====================================================================
-// UI CONTROLLER
+// UI CONTROLLER - UPDATED WITH SIMPLIFIED FUNCTIONALITY
 // ====================================================================
 class UIController {
     constructor(engine, animationManager, renderer) {
@@ -2458,6 +2427,7 @@ class UIController {
         
         this.setupEventListeners();
         this.setupInputControls();
+        this.initializeToggles();
         this.updatePerformanceInfo();
         this.updatePointsUI();
     }
@@ -2484,10 +2454,10 @@ class UIController {
         const showPointsToggle = document.getElementById('showPointsToggle');
         const showGridToggle = document.getElementById('showGridToggle');
         const generatePatternBtn = document.getElementById('generatePatternBtn');
-        const pointWaveTypeToggle = document.getElementById('pointWaveTypeToggle');
         const clonePointBtn = document.getElementById('clonePointBtn');
         const deletePointBtn = document.getElementById('deletePointBtn');
         const colorToggle = document.getElementById('colorToggle');
+        const realisticDecayToggle = document.getElementById('realisticDecayToggle');
         const singleEditMode = document.getElementById('singleEditMode');
         
         if (clearBtn) clearBtn.addEventListener('click', () => this.clearAll());
@@ -2495,22 +2465,11 @@ class UIController {
         if (showPointsToggle) showPointsToggle.addEventListener('click', () => this.toggleShowPoints());
         if (showGridToggle) showGridToggle.addEventListener('click', () => this.toggleShowGrid());
         if (generatePatternBtn) generatePatternBtn.addEventListener('click', () => this.generatePattern());
-        if (pointWaveTypeToggle) pointWaveTypeToggle.addEventListener('click', () => this.toggleWaveType());
         if (clonePointBtn) clonePointBtn.addEventListener('click', () => this.clonePoint());
         if (deletePointBtn) deletePointBtn.addEventListener('click', () => this.deletePoint());
         if (colorToggle) colorToggle.addEventListener('click', () => this.toggleColorMode());
+        if (realisticDecayToggle) realisticDecayToggle.addEventListener('click', () => this.toggleRealisticDecay());
         if (singleEditMode) singleEditMode.addEventListener('change', (e) => this.setSingleEditMode(e.target.checked));
-        
-        // Point list
-        const pointList = document.getElementById('pointList');
-        if (pointList) {
-            pointList.addEventListener('click', (e) => {
-                const item = e.target.closest('.point-item');
-                if (item) {
-                    this.selectPoint(item.dataset.id);
-                }
-            });
-        }
         
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyboard(e));
@@ -2663,9 +2622,7 @@ class UIController {
         const bounds = { width: window.innerWidth, height: window.innerHeight };
         const pos = PatternGenerator.findRandomPosition(this.engine.getAllPoints(), bounds);
         const point = this.addPoint(pos.x, pos.y);
-        if (point) {
-            this.bottomSheet.expand();
-        }
+        // REMOVED: auto-expand behavior
     }
     
     addPoint(x, y, properties = {}) {
@@ -2738,24 +2695,6 @@ class UIController {
         }
     }
     
-    toggleWaveType() {
-        if (this.singleEditMode) {
-            const selectedPoint = this.getSelectedPoint();
-            if (selectedPoint) {
-                selectedPoint.waveType = selectedPoint.waveType === 'sine' ? 'step' : 'sine';
-                this.updatePointPropertiesUI();
-                this.updatePointsUI();
-            }
-        } else {
-            const waveTypeToggle = document.getElementById('pointWaveTypeToggle');
-            const newWaveType = waveTypeToggle.classList.contains('active') ? 'step' : 'sine';
-            for (const point of this.engine.getAllPoints()) {
-                point.waveType = newWaveType;
-            }
-            this.updatePointsUI();
-        }
-    }
-    
     updatePointProperty(property, value) {
         if (this.singleEditMode) {
             const selectedPoint = this.getSelectedPoint();
@@ -2801,6 +2740,14 @@ class UIController {
         this.engine.setColorMode(newState);
         this.updateButton('colorToggle', newState);
         this.updateColorControls();
+        this.animationManager.forceRender();
+    }
+    
+    toggleRealisticDecay() {
+        const newState = !this.engine.useRealisticDecay;
+        this.engine.setRealisticDecay(newState);
+        this.updateButton('realisticDecayToggle', newState);
+        this.updateDampingControls();
         this.animationManager.forceRender();
     }
     
@@ -2856,24 +2803,18 @@ class UIController {
         }
     }
     
+    updateDampingControls() {
+        const dampingControls = document.getElementById('dampingControls');
+        if (dampingControls) {
+            dampingControls.style.display = this.engine.useRealisticDecay ? 'none' : 'block';
+        }
+    }
+    
     updatePointsUI() {
         const count = this.engine.points.size;
         const stats = document.getElementById('stats');
         if (stats) {
             stats.textContent = `Points: ${count} / ${CONFIG.maxPoints}`;
-        }
-        
-        const pointList = document.getElementById('pointList');
-        if (pointList) {
-            if (count === 0) {
-                pointList.innerHTML = '<div class="empty-state">No points created<br>Use + button or long-press on canvas</div>';
-            } else {
-                pointList.innerHTML = this.engine.getAllPoints().map(point => `
-                    <div class="point-item ${point.selected ? 'selected' : ''}" data-id="${point.id}">
-                        ${point.getDisplayName()} - ${point.waveType} (${point.amplitude})
-                    </div>
-                `).join('');
-            }
         }
         
         const performanceInfo = document.getElementById('performanceInfo');
@@ -2911,12 +2852,10 @@ class UIController {
             this.inputController.updatePair('pointAmplitude', 'pointAmplitudeValue', CONFIG.defaults.amplitude);
             this.inputController.updatePair('pointWavelength', 'pointWavelengthValue', CONFIG.defaults.wavelength);
             this.inputController.updatePair('pointSpeed', 'pointSpeedValue', CONFIG.defaults.speed);
-            this.updateButton('pointWaveTypeToggle', CONFIG.defaults.waveType === 'sine');
         } else if (this.singleEditMode && selectedPoint) {
             this.inputController.updatePair('pointAmplitude', 'pointAmplitudeValue', selectedPoint.amplitude);
             this.inputController.updatePair('pointWavelength', 'pointWavelengthValue', selectedPoint.wavelength);
             this.inputController.updatePair('pointSpeed', 'pointSpeedValue', selectedPoint.speed);
-            this.updateButton('pointWaveTypeToggle', selectedPoint.waveType === 'sine');
         } else {
             const avgAmplitude = Math.round(allPoints.reduce((sum, p) => sum + p.amplitude, 0) / allPoints.length);
             const avgWavelength = Math.round(allPoints.reduce((sum, p) => sum + p.wavelength, 0) / allPoints.length);
@@ -2925,9 +2864,6 @@ class UIController {
             this.inputController.updatePair('pointAmplitude', 'pointAmplitudeValue', avgAmplitude);
             this.inputController.updatePair('pointWavelength', 'pointWavelengthValue', avgWavelength);
             this.inputController.updatePair('pointSpeed', 'pointSpeedValue', avgSpeed);
-            
-            const sineCount = allPoints.filter(p => p.waveType === 'sine').length;
-            this.updateButton('pointWaveTypeToggle', sineCount > allPoints.length / 2);
         }
     }
     
@@ -2942,6 +2878,20 @@ class UIController {
     setSingleEditMode(enabled) {
         this.singleEditMode = enabled;
         this.updatePointPropertiesUI();
+    }
+    
+    initializeToggles() {
+        // Initialize realistic decay toggle (default OFF)
+        this.updateButton('realisticDecayToggle', false);
+        this.updateDampingControls();
+        
+        // Initialize color toggle (default OFF)
+        this.updateButton('colorToggle', false);
+        this.updateColorControls();
+        
+        // Initialize other toggles
+        this.updateButton('showPointsToggle', false);
+        this.updateButton('showGridToggle', false);
     }
     
     initializeInputDisplays() {
@@ -3038,10 +2988,12 @@ class WaveSimulation {
         
         window.app = this;
         
-        console.log('Wave simulation initialized - proper integration');
-        console.log('- Real physics engine with bottom sheet UI');
-        console.log('- 5-panel carousel navigation');
-        console.log('- Mobile-first design with desktop compatibility');
+        console.log('Wave simulation initialized - UX improvements implemented');
+        console.log('- Enhanced canvas tap behavior for bottom sheet control');
+        console.log('- Simplified sine-wave only physics with geometric decay');
+        console.log('- Reduced bottom sheet height for better canvas visibility');
+        console.log('- 4-panel navigation (removed Point List panel)');
+        console.log('- Removed auto-expand behavior');
     }
 }
 
@@ -3057,7 +3009,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="display: flex; align-items: center; justify-content: center; height: 100vh; color: white; text-align: center; font-family: monospace;">
                 <div>
                     <h2>Wave Simulation Error</h2>
-                    <p>Failed to initialize bottom sheet interface</p>
+                    <p>Failed to initialize improved wave interface</p>
                     <p style="font-size: 12px; opacity: 0.7;">Check console for details</p>
                 </div>
             </div>
