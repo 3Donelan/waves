@@ -126,14 +126,12 @@ body {
 }
 
 /* Floating Action Buttons */
-.help-button {
+.help-button, .sync-button, .clear-button {
     position: fixed;
-    top: 20px;
-    left: 20px;
     z-index: 1000;
-    width: 56px;
-    height: 56px;
-    background: var(--bg-primary);
+    width: 40px;
+    height: 40px;
+    background: rgba(20, 20, 20, 0.9);
     backdrop-filter: blur(20px);
     border: 1px solid var(--border-primary);
     border-radius: 50%;
@@ -143,15 +141,49 @@ body {
     cursor: pointer;
     transition: 0.3s ease;
     color: var(--text-primary);
-    font-size: 20px;
+    font-size: 14px;
     font-weight: 600;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-.help-button:hover { 
-    background: var(--bg-button-hover);
+.help-button {
+    top: 20px;
+    left: 20px;
+}
+
+.sync-button {
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 255, 136, 0.8);
+    border-color: rgba(0, 255, 136, 0.6);
+    box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
+}
+
+.clear-button {
+    top: 70px;
+    right: 20px;
+    background: rgba(255, 68, 68, 0.8);
+    border-color: rgba(255, 68, 68, 0.6);
+    box-shadow: 0 4px 20px rgba(255, 68, 68, 0.3);
+}
+
+.help-button:hover, .sync-button:hover, .clear-button:hover { 
     transform: translateY(-2px);
     box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
+}
+
+.help-button:hover {
+    background: rgba(20, 20, 20, 0.95);
+}
+
+.sync-button:hover {
+    background: rgba(0, 255, 136, 0.9);
+    box-shadow: 0 6px 25px rgba(0, 255, 136, 0.4);
+}
+
+.clear-button:hover {
+    background: rgba(255, 68, 68, 0.9);
+    box-shadow: 0 6px 25px rgba(255, 68, 68, 0.4);
 }
 
 .add-button {
@@ -725,11 +757,25 @@ body {
 
 /* Responsive Design */
 @media (min-width: 768px) {
+    .help-button, .sync-button, .clear-button {
+        width: 48px;
+        height: 48px;
+        font-size: 16px;
+    }
+    
     .help-button {
         top: 30px;
         left: 30px;
-        width: 64px;
-        height: 64px;
+    }
+    
+    .sync-button {
+        top: 30px;
+        right: 30px;
+    }
+    
+    .clear-button {
+        top: 88px;
+        right: 30px;
     }
 
     .add-button {
@@ -889,6 +935,8 @@ body {
 
 <!-- Floating Action Buttons -->
 <button class="help-button" id="helpBtn">?</button>
+<button class="sync-button" id="syncBtn">≈</button>
+<button class="clear-button" id="clearBtn">✕</button>
 <button class="add-button" id="addBtn">+</button>
 
 <!-- Bottom Sheet -->
@@ -913,13 +961,6 @@ body {
             
             <!-- Panel 1: Quick Controls -->
             <div class="panel" data-panel-id="0">
-                <div class="control-section">
-                    <div class="button-group">
-                        <button class="control-button primary" id="syncBtn">Sync</button>
-                        <button class="control-button danger" id="clearBtn">Clear All</button>
-                    </div>
-                </div>
-                
                 <div class="control-section">
                     <div class="toggle-row">
                         <div class="toggle-group">
@@ -1154,7 +1195,7 @@ const CONFIG = {
     ],
     
     panelNames: [
-        'Quick Controls',
+        'Display Options',
         'Medium Properties', 
         'Pattern Generator',
         'Edit Points'
