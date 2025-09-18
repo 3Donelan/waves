@@ -128,7 +128,7 @@ body {
 /* Floating Action Buttons */
 .help-button, .sync-button, .clear-button {
     position: fixed;
-    z-index: 1000;
+    z-index: 900;
     width: 40px;
     height: 40px;
     background: rgba(20, 20, 20, 0.9);
@@ -149,41 +149,23 @@ body {
 .help-button {
     top: 20px;
     left: 20px;
+    z-index: 1000;
 }
 
 .sync-button {
-    top: 20px;
+    bottom: 130px;
     right: 20px;
-    background: rgba(0, 255, 136, 0.8);
-    border-color: rgba(0, 255, 136, 0.6);
-    box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
 }
 
 .clear-button {
-    top: 70px;
+    bottom: 180px;
     right: 20px;
-    background: rgba(255, 68, 68, 0.8);
-    border-color: rgba(255, 68, 68, 0.6);
-    box-shadow: 0 4px 20px rgba(255, 68, 68, 0.3);
 }
 
 .help-button:hover, .sync-button:hover, .clear-button:hover { 
+    background: rgba(20, 20, 20, 0.95);
     transform: translateY(-2px);
     box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
-}
-
-.help-button:hover {
-    background: rgba(20, 20, 20, 0.95);
-}
-
-.sync-button:hover {
-    background: rgba(0, 255, 136, 0.9);
-    box-shadow: 0 6px 25px rgba(0, 255, 136, 0.4);
-}
-
-.clear-button:hover {
-    background: rgba(255, 68, 68, 0.9);
-    box-shadow: 0 6px 25px rgba(255, 68, 68, 0.4);
 }
 
 .add-button {
@@ -243,15 +225,18 @@ body {
 .sheet-handle {
     width: 40px;
     height: 4px;
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--color-primary);
     border-radius: 2px;
     margin: 16px auto 0;
     cursor: pointer;
     transition: 0.2s ease;
+    opacity: 0.8;
 }
 
 .sheet-handle:hover {
-    background: rgba(255, 255, 255, 0.5);
+    background: var(--color-primary);
+    opacity: 1;
+    box-shadow: 0 0 8px rgba(0, 255, 136, 0.4);
 }
 
 .sheet-header {
@@ -769,12 +754,12 @@ body {
     }
     
     .sync-button {
-        top: 30px;
+        bottom: 150px;
         right: 30px;
     }
     
     .clear-button {
-        top: 88px;
+        bottom: 210px;
         right: 30px;
     }
 
@@ -2641,6 +2626,7 @@ class UIController {
         this.animationManager.stop();
         this.animationManager.setShowPoints(false);
         this.animationManager.setShowGrid(false);
+        this.animationManager.setSelectedPoint(null); // Clear visual selection
         this.updatePointsUI();
         this.updatePointPropertiesUI();
         this.updateButton('showPointsToggle', false);
