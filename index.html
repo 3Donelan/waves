@@ -172,7 +172,7 @@ body {
 
 .add-button {
     position: fixed;
-    bottom: 80px;
+    bottom: 70px;
     right: 20px;
     z-index: 900;
     width: 56px;
@@ -766,7 +766,7 @@ body {
     }
 
     .add-button {
-        bottom: 100px;
+        bottom: 60px;
         right: 30px;
         width: 64px;
         height: 64px;
@@ -2035,6 +2035,13 @@ class BottomSheetController {
         const handle = this.elements.sheetHandle;
         const sheet = this.elements.bottomSheet;
         
+        // Handle click to toggle
+        handle.addEventListener('click', (e) => {
+            if (!this.isDraggingHandle) {
+                this.isExpanded ? this.collapse() : this.expand();
+            }
+        });
+        
         handle.addEventListener('touchstart', (e) => {
             this.startDrag(e.touches[0].clientY);
             e.preventDefault();
@@ -2594,6 +2601,11 @@ class UIController {
         if (point) {
             point.selected = true;
         }
+        
+        // Auto-enable single edit mode when point is selected
+        this.singleEditMode = true;
+        const singleEditModeEl = document.getElementById('singleEditMode');
+        if (singleEditModeEl) singleEditModeEl.checked = true;
         
         this.updatePointPropertiesUI();
         this.updatePointsUI();
