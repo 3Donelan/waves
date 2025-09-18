@@ -1,5 +1,3 @@
-Reply 9
-
 # Wave Simulation – README
 
 ## Overview
