@@ -438,7 +438,7 @@ body {
 
 .button--primary {
     background: var(--color-primary);
-    color: black;
+    color: white;
     border-color: var(--color-primary);
 }
 
@@ -646,7 +646,6 @@ body {
     max-width: 500px;
     width: 100%;
     color: var(--text-primary);
-    overflow: hidden;
     max-height: 90vh;
     overflow-y: auto;
 }
@@ -1133,6 +1132,9 @@ body {
                 <div class="instruction-item">
                     <strong>Clone Point:</strong> Double-tap on existing point
                 </div>
+                <div class="instruction-item">
+                    <strong>Edit Wavelength:</strong> Slow double-tap selected point for edit mode
+                </div>
             </div>
             
             <h3 class="panel__section-title">Bottom Sheet Navigation</h3>
@@ -1144,7 +1146,7 @@ body {
                     <strong>Navigate:</strong> Swipe left/right or tap navigation segments
                 </div>
                 <div class="instruction-item">
-                    <strong>Panels:</strong> Display Options → Medium Properties → Pattern Generator → Edit Points
+                    <strong>Panels:</strong> Medium Properties → Pattern Generator → Edit Points
                 </div>
             </div>
             
@@ -1162,11 +1164,37 @@ body {
                     <span>Collapse bottom sheet</span>
                     <span class="shortcut-key">Esc</span>
                 </div>
+                <div class="shortcut-item">
+                    <span>Wavelength edit (in edit mode)</span>
+                    <span class="shortcut-key">Ctrl + Scroll</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>Toggle fullscreen</span>
+                    <span class="shortcut-key">Double-tap canvas</span>
+                </div>
+            </div>
+            
+            <h3 class="panel__section-title">Touch Gestures</h3>
+            <div class="instruction-list">
+                <div class="instruction-item">
+                    <strong>Wavelength Edit:</strong> Two-finger pinch in edit mode (pinch out = increase, pinch in = decrease)
+                </div>
+                <div class="instruction-item">
+                    <strong>Fullscreen:</strong> Double-tap empty canvas area
+                </div>
+                <div class="instruction-item">
+                    <strong>Context Actions:</strong> Floating buttons adapt to selection state
+                </div>
             </div>
             
             <div class="about-section">
                 <p><strong>Wave Physics Simulation</strong></p>
-                <p>Proper integration - Real physics with modern UI</p>
+                <p>Interactive wave interference visualization</p>
+                <p>Vibe coded during commute and coffee breaks by David Donelan</p>
+                <div class="license-text">
+                    Released under MIT License<br>
+                    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+                </div>
             </div>
         </div>
         <footer class="modal__footer">
