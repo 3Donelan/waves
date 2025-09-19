@@ -3,21 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Wave Simulation - Bottom Sheet UI</title>
+<title>Wave Physics Simulation - Interactive Wave Interference</title>
 <style>
 :root {
-    --bg-primary: rgba(20, 20, 20, 0.95);
-    --bg-secondary: rgba(255, 255, 255, 0.05);
-    --bg-button: rgba(255, 255, 255, 0.1);
-    --bg-button-hover: rgba(255, 255, 255, 0.2);
-    --bg-button-active: rgba(255, 255, 255, 0.3);
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2a2a2a;
+    --bg-button: #333333;
     --color-primary: #00ff88;
     --color-secondary: #0088ff;
     --color-danger: #ff4444;
     --color-warning: #ff9500;
     --color-accent: #8a2be2;
     --text-primary: white;
-    --border-primary: rgba(255, 255, 255, 0.1);
+    --border-primary: #444444;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -33,215 +31,230 @@ body {
     position: fixed;
 }
 
-#canvas {
+/* SIMULATION CANVAS */
+.simulation__canvas {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
     background: #000;
-    cursor: url("data:image/svg+xml,%3csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3e%3cline x1='10' y1='0' x2='10' y2='20' stroke='%2300ff88' stroke-width='2'/%3e%3cline x1='0' y1='10' x2='20' y2='10' stroke='%2300ff88' stroke-width='2'/%3e%3c/svg%3e") 10 10, crosshair;
+    cursor: crosshair;
     touch-action: none;
     display: block;
 }
 
-.visual-indicator {
+/* LONG PRESS INDICATOR */
+.long-press-indicator {
     position: fixed;
-    pointer-events: none;
+    width: 60px;
+    height: 60px;
+    border: 2px solid #00ff88;
     border-radius: 50%;
-    transform: translate(-50%, -50%);
+    pointer-events: none;
     opacity: 0;
+    transform: translate(-50%, -50%);
     z-index: 1000;
 }
 
-.long-press-indicator {
-    width: 60px;
-    height: 60px;
-    border: 2px solid rgba(0, 255, 136, 0.6);
+.long-press-indicator.is-active {
+    opacity: 1;
 }
 
-.long-press-indicator.active {
-    animation: longPressGrow 0.5s ease-out forwards;
+.long-press-indicator.is-complete {
+    border-color: #ffffff;
+    background: rgba(0, 255, 136, 0.2);
 }
 
-.long-press-indicator.complete {
-    animation: fadeOut 0.3s ease-out forwards;
+/* DISPLAY CONTROLS */
+.display-controls {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 900;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.clone-flash {
-    width: 80px;
-    height: 80px;
-    border: 3px solid var(--color-secondary);
-    animation: pulseOut 0.5s ease-out;
+.display-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: 20px;
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    min-width: 60px;
 }
 
+.display-control:focus {
+    outline: 2px solid var(--color-primary);
+}
+
+.control-icon {
+    flex: 1;
+    text-align: center;
+    font-weight: bold;
+}
+
+.control-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: 20px;
+    color: var(--text-primary);
+    font-size: 16px;
+    cursor: pointer;
+    min-width: 60px;
+    font-weight: bold;
+}
+
+.control-action:focus {
+    outline: 2px solid var(--color-primary);
+}
+
+.mini-toggle {
+    width: 28px;
+    height: 16px;
+    background: var(--bg-button);
+    border-radius: 8px;
+    position: relative;
+    border: 1px solid var(--border-primary);
+}
+
+.mini-toggle.is-active {
+    background: var(--color-primary);
+}
+
+.mini-toggle__circle {
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 12px;
+    height: 12px;
+    background: white;
+    border-radius: 50%;
+}
+
+.mini-toggle.is-active .mini-toggle__circle {
+    transform: translateX(12px);
+}
+
+/* DELETION ZONES */
 .deletion-zone {
     position: fixed;
     pointer-events: none;
     z-index: 500;
     opacity: 0;
-    transition: opacity 0.2s ease;
 }
 
-.deletion-zone.active { opacity: 1; }
+.deletion-zone.is-active { opacity: 1; }
 
-.deletion-edge-top, .deletion-edge-bottom {
-    left: 0; width: 100vw; height: 4px;
-    background: linear-gradient(to bottom, rgba(255, 68, 68, 0.8), transparent);
-    box-shadow: 0 0 10px rgba(255, 68, 68, 0.6);
+.deletion-zone--top, 
+.deletion-zone--bottom {
+    left: 0; 
+    width: 100vw; 
+    height: 4px;
+    background: var(--color-danger);
 }
 
-.deletion-edge-top { top: 0; }
-.deletion-edge-bottom { 
-    bottom: 0; 
-    background: linear-gradient(to top, rgba(255, 68, 68, 0.8), transparent);
+.deletion-zone--top { top: 0; }
+.deletion-zone--bottom { bottom: 0; }
+
+.deletion-zone--left, 
+.deletion-zone--right {
+    top: 0; 
+    height: 100vh; 
+    width: 4px;
+    background: var(--color-danger);
 }
 
-.deletion-edge-left, .deletion-edge-right {
-    top: 0; height: 100vh; width: 4px;
-    background: linear-gradient(to right, rgba(255, 68, 68, 0.8), transparent);
-    box-shadow: 0 0 10px rgba(255, 68, 68, 0.6);
-}
+.deletion-zone--left { left: 0; }
+.deletion-zone--right { right: 0; }
 
-.deletion-edge-left { left: 0; }
-.deletion-edge-right { 
-    right: 0;
-    background: linear-gradient(to left, rgba(255, 68, 68, 0.8), transparent);
-}
-
-@keyframes longPressGrow {
-    from { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
-    to { opacity: 1; transform: translate(-50%, -50%) scale(1.2); border-color: var(--color-primary); box-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
-}
-
-@keyframes fadeOut {
-    from { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-    to { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
-}
-
-@keyframes pulseOut {
-    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-    50% { opacity: 1; }
-    100% { opacity: 0; transform: translate(-50%, -50%) scale(2); }
-}
-
-/* Floating Action Buttons */
-.help-button, .sync-button, .clear-button {
+/* FLOATING ACTION BUTTONS */
+.fab {
     position: fixed;
     z-index: 900;
-    width: 40px;
-    height: 40px;
-    background: rgba(20, 20, 20, 0.9);
-    backdrop-filter: blur(20px);
+    background: var(--bg-primary);
     border: 1px solid var(--border-primary);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: 0.3s ease;
     color: var(--text-primary);
-    font-size: 14px;
     font-weight: 600;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-.help-button {
+.fab:focus {
+    outline: 2px solid var(--color-primary);
+}
+
+.fab--small {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+}
+
+.fab--large {
+    width: 56px;
+    height: 56px;
+    font-size: 24px;
+    font-weight: 300;
+}
+
+.fab--help {
     top: 20px;
     left: 20px;
     z-index: 1000;
 }
 
-.sync-button {
-    bottom: 160px;
-    right: 20px;
-    font-size: 18px;
-}
-
-.clear-button {
-    bottom: 210px;
-    right: 20px;
-    font-size: 18px;
-}
-
-.help-button:hover, .sync-button:hover, .clear-button:hover { 
-    background: rgba(20, 20, 20, 0.95);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
-}
-
-.add-button {
-    position: fixed;
+.fab--add {
     bottom: 70px;
     right: 20px;
-    z-index: 900;
-    width: 56px;
-    height: 56px;
-    background: linear-gradient(135deg, var(--color-primary), #00cc6a);
-    border: none;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: 0.3s ease;
-    color: white;
-    font-size: 24px;
-    font-weight: 300;
-    box-shadow: 0 4px 20px rgba(0, 255, 136, 0.4);
+    background: var(--color-primary);
+    color: black;
 }
 
-.add-button:hover { 
-    transform: translateY(-2px);
-    box-shadow: 0 6px 25px rgba(0, 255, 136, 0.5);
-}
-
-.add-button:active { 
-    transform: translateY(0);
-}
-
-/* Bottom Sheet */
-.bottom-sheet {
+/* CONTROL PANEL */
+.control-panel {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     height: 45vh;
     background: var(--bg-primary);
-    backdrop-filter: blur(20px);
     border-top: 1px solid var(--border-primary);
     border-radius: 16px 16px 0 0;
     z-index: 999;
     transform: translateY(calc(100% - 40px));
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.5);
 }
 
-.bottom-sheet.expanded {
+.control-panel.is-expanded {
     transform: translateY(0);
 }
 
-.sheet-handle {
+.control-panel__handle {
     width: 40px;
     height: 4px;
     background: var(--color-primary);
     border-radius: 2px;
     margin: 16px auto 0;
     cursor: pointer;
-    transition: 0.2s ease;
-    opacity: 0.8;
 }
 
-.sheet-handle:hover {
-    background: var(--color-primary);
-    opacity: 1;
-    box-shadow: 0 0 8px rgba(0, 255, 136, 0.4);
-}
-
-.sheet-header {
+.control-panel__header {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -250,7 +263,7 @@ body {
     color: var(--text-primary);
 }
 
-.panel-title {
+.control-panel__title {
     font-size: 18px;
     font-weight: 600;
     color: var(--color-primary);
@@ -258,10 +271,10 @@ body {
     margin-bottom: 16px;
 }
 
-.panel-navigation {
+.control-panel__navigation {
     width: 100%;
     height: 16px;
-    background: rgba(255, 255, 255, 0.1);
+    background: #333;
     border-radius: 8px;
     margin-bottom: 20px;
     position: relative;
@@ -273,7 +286,6 @@ body {
     flex: 1;
     height: 100%;
     cursor: pointer;
-    transition: background 0.2s ease;
     position: relative;
 }
 
@@ -284,19 +296,14 @@ body {
     top: 2px;
     bottom: 2px;
     width: 0.5px;
-    background: rgba(255, 255, 255, 0.2);
+    background: #555;
 }
 
-.nav-segment.active {
+.nav-segment.is-active {
     background: var(--color-primary);
-    box-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
 }
 
-.nav-segment:hover:not(.active) {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.sheet-content {
+.control-panel__content {
     flex: 1;
     overflow: hidden;
     position: relative;
@@ -308,7 +315,6 @@ body {
     overflow-x: auto;
     overflow-y: hidden;
     scroll-snap-type: x mandatory;
-    scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -318,6 +324,7 @@ body {
     display: none;
 }
 
+/* PANELS */
 .panel {
     min-width: 100%;
     width: 100%;
@@ -329,39 +336,44 @@ body {
     scroll-snap-stop: always;
 }
 
-.control-section {
+.panel__section {
     margin-bottom: 32px;
 }
 
-.section-title {
+.panel__section-title {
     font-size: 14px;
     font-weight: 600;
     margin-bottom: 16px;
     color: var(--text-primary);
-    opacity: 0.9;
 }
 
+/* CONTROL GROUPS */
 .control-group {
     margin-bottom: 20px;
 }
 
-.control-label {
+.control-group__label {
     display: block;
     font-size: 12px;
     margin-bottom: 8px;
-    opacity: 0.8;
     color: var(--text-primary);
 }
 
-.button-group {
+.control-group--row {
     display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
+    gap: 20px;
+    align-items: center;
 }
 
-.control-button {
+.control-group--toggle {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
     flex: 1;
-    min-width: 100px;
+}
+
+/* BUTTONS */
+.button {
     padding: 12px 16px;
     background: var(--bg-button);
     border: 1px solid var(--border-primary);
@@ -370,70 +382,60 @@ body {
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: 0.2s ease;
 }
 
-.control-button:hover { background: var(--bg-button-hover); }
-.control-button:active { transform: scale(0.98); }
-
-.control-button.primary {
-    background: rgba(0, 255, 136, 0.2);
-    border-color: rgba(0, 255, 136, 0.4);
+.button:focus {
+    outline: 2px solid var(--color-primary);
 }
 
-.control-button.primary:hover { background: rgba(0, 255, 136, 0.3); }
-
-.control-button.danger {
-    background: rgba(255, 68, 68, 0.2);
-    border-color: rgba(255, 68, 68, 0.4);
+.button--primary {
+    background: var(--color-primary);
+    color: black;
+    border-color: var(--color-primary);
 }
 
-.control-button.danger:hover { background: rgba(255, 68, 68, 0.3); }
-
-.control-button.secondary {
-    background: rgba(0, 136, 255, 0.2);
-    border-color: rgba(0, 136, 255, 0.4);
+.button--danger {
+    background: var(--color-danger);
+    border-color: var(--color-danger);
 }
 
-.control-button.secondary:hover { background: rgba(0, 136, 255, 0.3); }
-
-.control-button.pattern {
-    background: rgba(138, 43, 226, 0.2);
-    border-color: rgba(138, 43, 226, 0.4);
+.button--secondary {
+    background: var(--color-secondary);
+    border-color: var(--color-secondary);
 }
 
-.control-button.pattern:hover { background: rgba(138, 43, 226, 0.3); }
+.button--pattern {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+}
 
-.toggle-row {
+.button-group {
     display: flex;
-    gap: 20px;
-    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
 }
 
-.toggle-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+.button-group .button {
     flex: 1;
+    min-width: 100px;
 }
 
-.toggle-switch {
+/* TOGGLE SWITCHES */
+.toggle {
     position: relative;
     width: 50px;
     height: 24px;
     background: var(--bg-button);
     border-radius: 12px;
     cursor: pointer;
-    transition: background 0.3s ease;
     border: 1px solid var(--border-primary);
 }
 
-.toggle-switch.active {
-    background: rgba(0, 255, 136, 0.3);
-    border-color: rgba(0, 255, 136, 0.6);
+.toggle.is-active {
+    background: var(--color-primary);
 }
 
-.toggle-circle {
+.toggle__circle {
     position: absolute;
     top: 2px;
     left: 2px;
@@ -441,20 +443,19 @@ body {
     height: 18px;
     background: white;
     border-radius: 50%;
-    transition: transform 0.3s ease;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-.toggle-switch.active .toggle-circle {
+.toggle.is-active .toggle__circle {
     transform: translateX(26px);
 }
 
-.slider-container {
+/* SLIDER CONTROLS */
+.slider-control {
     position: relative;
     margin: 12px 0;
 }
 
-.slider {
+.slider-control__input {
     width: 100%;
     height: 6px;
     background: var(--bg-button);
@@ -464,7 +465,7 @@ body {
     -webkit-appearance: none;
 }
 
-.slider::-webkit-slider-thumb {
+.slider-control__input::-webkit-slider-thumb {
     appearance: none;
     -webkit-appearance: none;
     width: 20px;
@@ -472,20 +473,18 @@ body {
     background: var(--text-primary);
     border-radius: 50%;
     cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
-.slider::-moz-range-thumb {
+.slider-control__input::-moz-range-thumb {
     width: 20px;
     height: 20px;
     background: var(--text-primary);
     border-radius: 50%;
     cursor: pointer;
     border: none;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
-.slider-value {
+.slider-control__value {
     position: absolute;
     right: 0;
     top: -28px;
@@ -498,20 +497,14 @@ body {
     border: 1px solid var(--border-primary);
     color: var(--text-primary);
     cursor: pointer;
-    transition: 0.2s ease;
 }
 
-.slider-value:hover {
-    border-color: var(--color-primary);
+.slider-control__value:focus {
+    outline: 2px solid var(--color-primary);
 }
 
-.slider-value:focus {
-    outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 5px rgba(0, 255, 136, 0.3);
-}
-
-.select-input {
+/* SELECT CONTROLS */
+.select-control {
     width: 100%;
     padding: 12px;
     background: var(--bg-button);
@@ -520,12 +513,13 @@ body {
     color: var(--text-primary);
     font-size: 14px;
     cursor: pointer;
-    transition: 0.2s ease;
 }
 
-.select-input:hover { background: var(--bg-button-hover); }
-.select-input:focus { outline: none; border-color: var(--color-primary); }
+.select-control:focus {
+    outline: 2px solid var(--color-primary);
+}
 
+/* INFO TEXT */
 .info-text {
     font-size: 11px;
     opacity: 0.6;
@@ -541,6 +535,7 @@ body {
     color: var(--text-primary);
 }
 
+/* POINT SECTION */
 .point-section {
     background: var(--bg-secondary);
     border-radius: 8px;
@@ -548,14 +543,14 @@ body {
     margin-bottom: 16px;
 }
 
-.point-header {
+.point-section__header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
 }
 
-.point-id {
+.point-section__id {
     font-size: 12px;
     opacity: 0.7;
     font-family: monospace;
@@ -578,58 +573,68 @@ body {
     margin: 8px 0;
 }
 
-/* Modal Overlays */
-.modal-overlay {
+/* MODALS */
+.modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
     background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(10px);
     z-index: 2000;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 20px;
+    margin: 0;
+    border: none;
+    color: var(--text-primary);
 }
 
-.modal {
+.modal__container {
     background: var(--bg-primary);
-    backdrop-filter: blur(20px);
     border: 1px solid var(--border-primary);
     border-radius: 16px;
     max-width: 500px;
     width: 100%;
     color: var(--text-primary);
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     max-height: 90vh;
     overflow-y: auto;
 }
 
-.modal-header {
+.modal__header {
     padding: 30px 30px 20px;
     text-align: center;
     border-bottom: 1px solid var(--border-primary);
 }
 
-.modal-header h2 {
+.modal__title {
     font-size: 24px;
     font-weight: 600;
     margin-bottom: 8px;
 }
 
-.modal-header p {
+.modal__subtitle {
     font-size: 14px;
     opacity: 0.7;
     margin: 0;
 }
 
-.modal-content {
+.modal__content {
     padding: 25px 30px;
 }
 
+.modal__footer {
+    padding: 20px 30px 30px;
+    text-align: center;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* INSTRUCTION LISTS */
 .instruction-list {
     display: flex;
     flex-direction: column;
@@ -642,7 +647,7 @@ body {
     padding: 12px 16px;
     background: var(--bg-secondary);
     border-radius: 8px;
-    border-left: 3px solid rgba(255, 255, 255, 0.3);
+    border-left: 3px solid #666;
 }
 
 .instruction-item strong {
@@ -650,53 +655,37 @@ body {
     font-weight: 600;
 }
 
-.warning-item {
+.instruction-item--warning {
     border-left: 3px solid var(--color-warning);
 }
 
-.warning-item strong {
+.instruction-item--warning strong {
     color: var(--color-warning);
 }
 
-.modal-footer {
-    padding: 20px 30px 30px;
-    text-align: center;
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-
+/* MODAL BUTTONS */
 .modal-button {
-    background: linear-gradient(135deg, var(--color-primary), #00cc6a);
+    background: var(--color-primary);
     border: none;
     border-radius: 12px;
-    color: white;
+    color: black;
     font-size: 16px;
     font-weight: 600;
     padding: 16px 32px;
     cursor: pointer;
-    transition: 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
     margin: 0 5px;
 }
 
-.modal-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4);
+.modal-button:focus {
+    outline: 2px solid white;
 }
 
-.modal-button:active { transform: translateY(0); }
-
-.modal-button.secondary {
-    background: linear-gradient(135deg, var(--color-secondary), #0066cc);
-    box-shadow: 0 4px 15px rgba(0, 136, 255, 0.3);
+.modal-button--secondary {
+    background: var(--color-secondary);
+    color: white;
 }
 
-.modal-button.secondary:hover {
-    box-shadow: 0 6px 20px rgba(0, 136, 255, 0.4);
-}
-
+/* KEYBOARD SHORTCUTS */
 .keyboard-shortcuts {
     display: grid;
     gap: 8px;
@@ -721,6 +710,7 @@ body {
     font-size: 11px;
 }
 
+/* ABOUT SECTION */
 .about-section {
     text-align: center;
     margin: 20px 0;
@@ -742,42 +732,58 @@ body {
     font-family: monospace;
 }
 
-/* Responsive Design */
+/* FULLSCREEN MODE */
+.fullscreen-mode .fab {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.fullscreen-mode .control-panel {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.fullscreen-mode .display-controls {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* RESPONSIVE DESIGN */
 @media (min-width: 768px) {
-    .help-button, .sync-button, .clear-button {
+    .fab--small {
         width: 48px;
         height: 48px;
         font-size: 16px;
     }
     
-    .help-button {
+    .fab--help {
         top: 30px;
         left: 30px;
     }
     
-    .sync-button {
+    .fab--sync {
         bottom: 150px;
         right: 30px;
     }
     
-    .clear-button {
+    .fab--clear {
         bottom: 210px;
         right: 30px;
     }
 
-    .add-button {
+    .fab--add {
         bottom: 60px;
         right: 30px;
         width: 64px;
         height: 64px;
     }
     
-    .bottom-sheet {
+    .control-panel {
         height: 40vh;
         transform: translateY(calc(100% - 50px));
     }
 
-    .sheet-header {
+    .control-panel__header {
         padding: 24px 32px 20px;
     }
 
@@ -788,23 +794,226 @@ body {
 </style>
 </head>
 <body>
-<canvas id="canvas"></canvas>
 
-<div class="visual-indicator long-press-indicator" id="longPressIndicator"></div>
+<main class="wave-simulation" role="main">
+    <!-- Simulation Canvas -->
+    <canvas class="simulation__canvas" data-canvas="main"></canvas>
 
-<div class="deletion-zone deletion-edge-top" id="deletionTop"></div>
-<div class="deletion-zone deletion-edge-bottom" id="deletionBottom"></div>
-<div class="deletion-zone deletion-edge-left" id="deletionLeft"></div>
-<div class="deletion-zone deletion-edge-right" id="deletionRight"></div>
+    <!-- Long Press Indicator -->
+    <div class="long-press-indicator" data-indicator="long-press"></div>
 
-<!-- Welcome Modal -->
-<div class="modal-overlay" id="welcomeOverlay">
-    <div class="modal">
-        <div class="modal-header">
-            <h2>Wave Physics Simulation</h2>
-            <p>Interactive wave interference patterns</p>
+    <!-- Deletion Zones -->
+    <div class="deletion-zone deletion-zone--top" data-deletion="top"></div>
+    <div class="deletion-zone deletion-zone--bottom" data-deletion="bottom"></div>
+    <div class="deletion-zone deletion-zone--left" data-deletion="left"></div>
+    <div class="deletion-zone deletion-zone--right" data-deletion="right"></div>
+
+    <!-- Floating Action Buttons -->
+    <button class="fab fab--small fab--help" data-action="help" aria-label="Help and Instructions">?</button>
+    <button class="fab fab--large fab--add" data-action="add" aria-label="Add Random Point">+</button>
+
+    <!-- Top-right Control Palette -->
+    <div class="display-controls">
+        <button class="display-control" data-toggle="show-points" aria-label="Toggle Point Visibility">
+            <span class="control-icon">●</span>
+            <div class="mini-toggle">
+                <div class="mini-toggle__circle"></div>
+            </div>
+        </button>
+        <button class="display-control" data-toggle="show-grid" aria-label="Toggle Grid Visibility">
+            <span class="control-icon">#</span>
+            <div class="mini-toggle">
+                <div class="mini-toggle__circle"></div>
+            </div>
+        </button>
+        <button class="control-action" data-action="sync" aria-label="Synchronize Wave Points">↻</button>
+        <button class="control-action" data-action="clear" aria-label="Clear All Points">×</button>
+    </div>
+
+    <!-- Control Panel -->
+    <section class="control-panel" data-panel="main">
+        <div class="control-panel__handle" data-handle="control-panel"></div>
+        
+        <header class="control-panel__header">
+            <h1 class="control-panel__title" data-title="panel">
+                <span data-panel-title="text">Medium Properties</span>
+            </h1>
+            
+            <nav class="control-panel__navigation" data-navigation="panels">
+                <div class="nav-segment is-active" data-panel-nav="0"></div>
+                <div class="nav-segment" data-panel-nav="1"></div>
+                <div class="nav-segment" data-panel-nav="2"></div>
+            </nav>
+        </header>
+        
+        <div class="control-panel__content">
+            <div class="panels-container" data-panels="container">
+                
+                <!-- Panel 1: Medium Properties -->
+                <section class="panel" data-panel-id="0">
+                    <div class="panel__section">
+                        <div class="control-group">
+                            <label class="control-group__label">Color Mode</label>
+                            <div class="toggle" data-toggle="color-mode">
+                                <div class="toggle__circle"></div>
+                            </div>
+                            <div class="info-text">Enable for colorful wave patterns</div>
+                        </div>
+                        
+                        <div class="control-group" data-color-controls="minima" style="display: none;">
+                            <label class="control-group__label">Minima Color (Hue)</label>
+                            <div class="slider-control">
+                                <input type="range" class="slider-control__input" data-slider="hue1" min="0" max="360" step="1" value="185">
+                                <input type="number" class="slider-control__value" data-input="hue1" min="0" max="360" value="185">
+                            </div>
+                        </div>
+                        
+                        <div class="control-group" data-color-controls="maxima" style="display: none;">
+                            <label class="control-group__label">Maxima Color (Hue)</label>
+                            <div class="slider-control">
+                                <input type="range" class="slider-control__input" data-slider="hue2" min="0" max="360" step="1" value="285">
+                                <input type="number" class="slider-control__value" data-input="hue2" min="0" max="360" value="285">
+                            </div>
+                        </div>
+                        
+                        <div class="control-group" data-color-controls="preview" style="display: none;">
+                            <label class="control-group__label">Color Preview</label>
+                            <div class="color-preview" data-preview="gradient" style="background: linear-gradient(to right, hsl(185, 70%, 50%), hsl(285, 70%, 50%));"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel__section">
+                        <div class="control-group">
+                            <label class="control-group__label">Animation Speed</label>
+                            <div class="slider-control">
+                                <input type="range" class="slider-control__input" data-slider="time-multiplier" min="0.0" max="30.0" step="0.1" value="10.0">
+                                <input type="number" class="slider-control__value" data-input="time-multiplier" min="0.0" max="30.0" step="0.1" value="10.0">
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label class="control-group__label">Damping</label>
+                            <div class="slider-control">
+                                <input type="range" class="slider-control__input" data-slider="damping" min="0.0" max="0.03" step="0.002" value="0.008">
+                                <input type="number" class="slider-control__value" data-input="damping" min="0.0" max="0.03" step="0.002" value="0.008">
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label class="control-group__label">Resolution</label>
+                            <div class="slider-control">
+                                <input type="range" class="slider-control__input" data-slider="performance" min="0" max="5" step="1" value="2">
+                                <input type="number" class="slider-control__value" data-input="performance" min="0" max="5" value="2">
+                            </div>
+                            <div class="info-text">Higher values = faster rendering</div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Panel 2: Pattern Generator -->
+                <section class="panel" data-panel-id="1">
+                    <div class="panel__section">
+                        <div class="button-group">
+                            <button class="button button--pattern" data-action="generate-pattern">Add Pattern</button>
+                        </div>
+                        <div class="info-text">Adds to existing points (max 36 total)</div>
+                    </div>
+                    
+                    <div class="panel__section">
+                        <div class="control-group">
+                            <label class="control-group__label">Pattern Type</label>
+                            <select data-select="pattern-type" class="select-control">
+                                <option value="grid">Grid</option>
+                                <option value="radial">Radial</option>
+                                <option value="spiral">Spiral</option>
+                                <option value="sunflower">Sunflower</option>
+                            </select>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label class="control-group__label">Number of Points</label>
+                            <div class="slider-control">
+                                <input type="range" class="slider-control__input" data-slider="pattern-count" min="3" max="36" step="1" value="16">
+                                <input type="number" class="slider-control__value" data-input="pattern-count" min="3" max="36" value="16">
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label class="control-group__label">Pattern Scale</label>
+                            <div class="slider-control">
+                                <input type="range" class="slider-control__input" data-slider="pattern-scale" min="0.3" max="2.0" step="0.1" value="1.0">
+                                <input type="number" class="slider-control__value" data-input="pattern-scale" min="0.3" max="2.0" step="0.1" value="1.0">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Panel 3: Edit Points -->
+                <section class="panel" data-panel-id="2">
+                    <div class="panel__section">
+                        <div class="control-group" data-edit-mode="container" style="display: none;">
+                            <label class="control-group__label">
+                                <input type="checkbox" data-checkbox="single-edit-mode" style="margin-right: 8px;">
+                                Edit Selected Point Only
+                            </label>
+                        </div>
+                        
+                        <div class="point-section" data-selected-point="info" style="display: none;">
+                            <div class="point-section__header">
+                                <span class="point-section__id" data-selected-point="id">Point #1</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel__section">
+                        <div class="control-group">
+                            <label class="control-group__label">Amplitude</label>
+                            <div class="slider-control">
+                                <input type="range" class="slider-control__input" data-slider="point-amplitude" min="10" max="100" step="5" value="60">
+                                <input type="number" class="slider-control__value" data-input="point-amplitude" min="10" max="100" value="60">
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label class="control-group__label">Wavelength</label>
+                            <div class="slider-control">
+                                <input type="range" class="slider-control__input" data-slider="point-wavelength" min="20" max="400" step="10" value="100">
+                                <input type="number" class="slider-control__value" data-input="point-wavelength" min="20" max="400" value="100">
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label class="control-group__label">Phase Velocity</label>
+                            <div class="slider-control">
+                                <input type="range" class="slider-control__input" data-slider="point-speed" min="0.1" max="1.0" step="0.1" value="1.0">
+                                <input type="number" class="slider-control__value" data-input="point-speed" min="0.1" max="1.0" step="0.1" value="1.0">
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label class="control-group__label">Point Phase Offset</label>
+                            <div class="slider-control">
+                                <input type="range" class="slider-control__input" data-slider="point-phase-offset" min="-2" max="2" step="0.1" value="0">
+                                <input type="number" class="slider-control__value" data-input="point-phase-offset" min="-2" max="2" step="0.1" value="0">
+                            </div>
+                            <div class="info-text">Creates time delays between points</div>
+                        </div>
+                    </div>
+                </section>
+                
+            </div>
         </div>
-        <div class="modal-content">
+    </section>
+</main>
+
+<!-- Modals -->
+<dialog class="modal" data-modal="welcome">
+    <div class="modal__container">
+        <header class="modal__header">
+            <h2 class="modal__title">Wave Physics Simulation</h2>
+            <p class="modal__subtitle">Interactive wave interference patterns</p>
+        </header>
+        <div class="modal__content">
             <div class="instruction-list">
                 <div class="instruction-item">
                     <strong>Create waves:</strong> Press and hold on empty space to add wave sources
@@ -820,25 +1029,24 @@ body {
                 </div>
             </div>
         </div>
-        <div class="modal-footer">
-            <button class="modal-button" id="welcomeStartBtn">Get Started</button>
-        </div>
+        <footer class="modal__footer">
+            <button class="modal-button" data-modal-action="start">Get Started</button>
+        </footer>
     </div>
-</div>
+</dialog>
 
-<!-- Health Warning Modal -->
-<div class="modal-overlay" id="healthWarningOverlay" style="display: none;">
-    <div class="modal">
-        <div class="modal-header">
-            <h2>Health & Safety Warning</h2>
-            <p>Important information before you begin</p>
-        </div>
-        <div class="modal-content">
+<dialog class="modal" data-modal="health-warning" style="display: none;">
+    <div class="modal__container">
+        <header class="modal__header">
+            <h2 class="modal__title">Health & Safety Warning</h2>
+            <p class="modal__subtitle">Important information before you begin</p>
+        </header>
+        <div class="modal__content">
             <div class="instruction-list">
-                <div class="instruction-item warning-item">
+                <div class="instruction-item instruction-item--warning">
                     <strong>Photosensitive Epilepsy:</strong> This simulation contains flashing patterns and rapid visual changes that may trigger seizures in individuals with photosensitive epilepsy
                 </div>
-                <div class="instruction-item warning-item">
+                <div class="instruction-item instruction-item--warning">
                     <strong>Motion Sensitivity:</strong> The dynamic wave patterns may cause discomfort for those sensitive to motion or visual effects
                 </div>
                 <div class="instruction-item">
@@ -846,22 +1054,21 @@ body {
                 </div>
             </div>
         </div>
-        <div class="modal-footer">
-            <button class="modal-button secondary" id="healthBackBtn">Go Back</button>
-            <button class="modal-button" id="healthContinueBtn">I Understand, Continue</button>
-        </div>
+        <footer class="modal__footer">
+            <button class="modal-button modal-button--secondary" data-modal-action="back">Go Back</button>
+            <button class="modal-button" data-modal-action="continue">I Understand, Continue</button>
+        </footer>
     </div>
-</div>
+</dialog>
 
-<!-- Help Modal -->
-<div class="modal-overlay" id="helpOverlay" style="display: none;">
-    <div class="modal">
-        <div class="modal-header">
-            <h2>Help & Instructions</h2>
-            <p>Complete guide to wave simulation</p>
-        </div>
-        <div class="modal-content">
-            <div class="section-title">Basic Controls</div>
+<dialog class="modal" data-modal="help" style="display: none;">
+    <div class="modal__container">
+        <header class="modal__header">
+            <h2 class="modal__title">Help & Instructions</h2>
+            <p class="modal__subtitle">Complete guide to wave simulation</p>
+        </header>
+        <div class="modal__content">
+            <h3 class="panel__section-title">Basic Controls</h3>
             <div class="instruction-list">
                 <div class="instruction-item">
                     <strong>Add Point:</strong> Press and hold on empty space until indicator completes
@@ -880,7 +1087,7 @@ body {
                 </div>
             </div>
             
-            <div class="section-title">Bottom Sheet Navigation</div>
+            <h3 class="panel__section-title">Bottom Sheet Navigation</h3>
             <div class="instruction-list">
                 <div class="instruction-item">
                     <strong>Expand:</strong> Tap handle or swipe up from bottom
@@ -889,11 +1096,11 @@ body {
                     <strong>Navigate:</strong> Swipe left/right or tap navigation segments
                 </div>
                 <div class="instruction-item">
-                    <strong>Panels:</strong> Quick Controls → Medium Properties → Pattern Generator → Edit Points
+                    <strong>Panels:</strong> Display Options → Medium Properties → Pattern Generator → Edit Points
                 </div>
             </div>
             
-            <div class="section-title">Keyboard Shortcuts</div>
+            <h3 class="panel__section-title">Keyboard Shortcuts</h3>
             <div class="keyboard-shortcuts">
                 <div class="shortcut-item">
                     <span>Delete selected point</span>
@@ -914,225 +1121,11 @@ body {
                 <p>Proper integration - Real physics with modern UI</p>
             </div>
         </div>
-        <div class="modal-footer">
-            <button class="modal-button" id="helpCloseBtn">Close</button>
-        </div>
+        <footer class="modal__footer">
+            <button class="modal-button" data-modal-action="close">Close</button>
+        </footer>
     </div>
-</div>
-
-<!-- Floating Action Buttons -->
-<button class="help-button" id="helpBtn">?</button>
-<button class="sync-button" id="syncBtn">≈</button>
-<button class="clear-button" id="clearBtn">↻</button>
-<button class="add-button" id="addBtn">+</button>
-
-<!-- Bottom Sheet -->
-<div class="bottom-sheet" id="bottomSheet">
-    <div class="sheet-handle" id="sheetHandle"></div>
-    
-    <div class="sheet-header">
-        <div class="panel-title" id="panelTitle">
-            <span id="panelTitleText">Quick Controls</span>
-        </div>
-        
-        <div class="panel-navigation" id="panelNavigation">
-            <div class="nav-segment active" data-panel="0"></div>
-            <div class="nav-segment" data-panel="1"></div>
-            <div class="nav-segment" data-panel="2"></div>
-            <div class="nav-segment" data-panel="3"></div>
-        </div>
-    </div>
-    
-    <div class="sheet-content">
-        <div class="panels-container" id="panelsContainer">
-            
-            <!-- Panel 1: Quick Controls -->
-            <div class="panel" data-panel-id="0">
-                <div class="control-section">
-                    <div class="toggle-row">
-                        <div class="toggle-group">
-                            <label class="control-label">Show Points</label>
-                            <div class="toggle-switch" id="showPointsToggle">
-                                <div class="toggle-circle"></div>
-                            </div>
-                        </div>
-                        <div class="toggle-group">
-                            <label class="control-label">Show Grid</label>
-                            <div class="toggle-switch" id="showGridToggle">
-                                <div class="toggle-circle"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="control-section">
-                    <div class="info-text" id="stats">Points: 0 / 36</div>
-                    <div class="stats-text" id="performanceInfo">Ready to create waves</div>
-                </div>
-            </div>
-            
-            <!-- Panel 2: Medium Properties -->
-            <div class="panel" data-panel-id="1">
-                <div class="control-section">
-                    <div class="control-group">
-                        <label class="control-label">Animation Speed</label>
-                        <div class="slider-container">
-                            <input type="range" class="slider" id="timeMultiplierSlider" min="0.0" max="30.0" step="0.1" value="10.0">
-                            <input type="number" class="slider-value" id="timeMultiplierValue" min="0.0" max="30.0" step="0.1" value="10.0">
-                        </div>
-                    </div>
-                    
-                    <div class="control-group">
-                        <label class="control-label">Damping</label>
-                        <div class="slider-container">
-                            <input type="range" class="slider" id="dampingSlider" min="0.0" max="0.03" step="0.002" value="0.008">
-                            <input type="number" class="slider-value" id="dampingValue" min="0.0" max="0.03" step="0.002" value="0.008">
-                        </div>
-                    </div>
-                    
-                    <div class="control-group">
-                        <label class="control-label">Resolution</label>
-                        <div class="slider-container">
-                            <input type="range" class="slider" id="performanceSlider" min="0" max="5" step="1" value="2">
-                            <input type="number" class="slider-value" id="performanceValue" min="0" max="5" value="2">
-                        </div>
-                        <div class="info-text">Higher values = faster rendering</div>
-                    </div>
-                </div>
-                
-                <div class="control-section">
-                    <div class="control-group">
-                        <label class="control-label">Color Mode</label>
-                        <div class="toggle-switch" id="colorToggle">
-                            <div class="toggle-circle"></div>
-                        </div>
-                        <div class="info-text">Enable for colorful wave patterns</div>
-                    </div>
-                    
-                    <div class="control-group" id="colorControls" style="display: none;">
-                        <label class="control-label">Minima Color (Hue)</label>
-                        <div class="slider-container">
-                            <input type="range" class="slider" id="hue1Slider" min="0" max="360" step="1" value="185">
-                            <input type="number" class="slider-value" id="hue1Value" min="0" max="360" value="185">
-                        </div>
-                    </div>
-                    
-                    <div class="control-group" id="colorControls2" style="display: none;">
-                        <label class="control-label">Maxima Color (Hue)</label>
-                        <div class="slider-container">
-                            <input type="range" class="slider" id="hue2Slider" min="0" max="360" step="1" value="285">
-                            <input type="number" class="slider-value" id="hue2Value" min="0" max="360" value="285">
-                        </div>
-                    </div>
-                    
-                    <div class="control-group" id="colorPreview" style="display: none;">
-                        <label class="control-label">Color Preview</label>
-                        <div class="color-preview" id="gradientPreview" style="background: linear-gradient(to right, hsl(185, 70%, 50%), hsl(285, 70%, 50%));"></div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Panel 3: Pattern Generator -->
-            <div class="panel" data-panel-id="2">
-                <div class="control-section">
-                    <div class="control-group">
-                        <label class="control-label">Pattern Type</label>
-                        <select id="patternType" class="select-input">
-                            <option value="grid">Grid</option>
-                            <option value="radial">Radial</option>
-                            <option value="spiral">Spiral</option>
-                            <option value="sunflower">Sunflower</option>
-                        </select>
-                    </div>
-                    
-                    <div class="control-group">
-                        <label class="control-label">Number of Points</label>
-                        <div class="slider-container">
-                            <input type="range" class="slider" id="patternCount" min="3" max="36" step="1" value="16">
-                            <input type="number" class="slider-value" id="patternCountValue" min="3" max="36" value="16">
-                        </div>
-                    </div>
-                    
-                    <div class="control-group">
-                        <label class="control-label">Pattern Scale</label>
-                        <div class="slider-container">
-                            <input type="range" class="slider" id="patternScale" min="0.3" max="2.0" step="0.1" value="1.0">
-                            <input type="number" class="slider-value" id="patternScaleValue" min="0.3" max="2.0" step="0.1" value="1.0">
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="control-section">
-                    <div class="button-group">
-                        <button class="control-button pattern" id="generatePatternBtn">Add Pattern</button>
-                    </div>
-                    <div class="info-text">Adds to existing points (max 36 total)</div>
-                </div>
-            </div>
-            
-            <!-- Panel 4: Edit Points -->
-            <div class="panel" data-panel-id="3">
-                <div class="control-section">
-                    <div class="control-group" id="editModeContainer" style="display: none;">
-                        <label class="control-label">
-                            <input type="checkbox" id="singleEditMode" style="margin-right: 8px;">
-                            Edit Selected Point Only
-                        </label>
-                    </div>
-                    
-                    <div class="point-section" id="selectedPointInfo" style="display: none;">
-                        <div class="point-header">
-                            <span class="point-id" id="selectedPointId">Point #1</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="control-section">
-                    <div class="control-group">
-                        <label class="control-label">Amplitude</label>
-                        <div class="slider-container">
-                            <input type="range" class="slider" id="pointAmplitude" min="10" max="100" step="5" value="60">
-                            <input type="number" class="slider-value" id="pointAmplitudeValue" min="10" max="100" value="60">
-                        </div>
-                    </div>
-                    
-                    <div class="control-group">
-                        <label class="control-label">Wavelength</label>
-                        <div class="slider-container">
-                            <input type="range" class="slider" id="pointWavelength" min="20" max="400" step="10" value="100">
-                            <input type="number" class="slider-value" id="pointWavelengthValue" min="20" max="400" value="100">
-                        </div>
-                    </div>
-                    
-                    <div class="control-group">
-                        <label class="control-label">Phase Velocity</label>
-                        <div class="slider-container">
-                            <input type="range" class="slider" id="pointSpeed" min="0.1" max="1.0" step="0.1" value="1.0">
-                            <input type="number" class="slider-value" id="pointSpeedValue" min="0.1" max="1.0" step="0.1" value="1.0">
-                        </div>
-                    </div>
-                    
-                    <div class="control-group">
-                        <label class="control-label">Point Phase Offset</label>
-                        <div class="slider-container">
-                            <input type="range" class="slider" id="pointPhaseOffsetSlider" min="-2" max="2" step="0.1" value="0">
-                            <input type="number" class="slider-value" id="pointPhaseOffsetValue" min="-2" max="2" step="0.1" value="0">
-                        </div>
-                        <div class="info-text">Creates time delays between points</div>
-                    </div>
-                </div>
-                
-                <div class="control-section" id="pointActions" style="display: none;">
-                    <div class="button-group">
-                        <button class="control-button secondary" id="clonePointBtn">Clone Point</button>
-                        <button class="control-button danger" id="deletePointBtn">Delete Point</button>
-                    </div>
-                </div>
-            </div>
-            
-        </div>
-    </div>
-</div>
+</dialog>
 
 <script>
 'use strict';
@@ -1182,7 +1175,6 @@ const CONFIG = {
     ],
     
     panelNames: [
-        'Display Options',
         'Medium Properties', 
         'Pattern Generator',
         'Edit Points'
@@ -1200,15 +1192,6 @@ const Utils = {
     
     haptic: () => {
         if ('vibrate' in navigator) navigator.vibrate(10);
-    },
-    
-    showVisual: (x, y, className, duration = 500) => {
-        const element = document.createElement('div');
-        element.className = `visual-indicator ${className}`;
-        element.style.left = `${x}px`;
-        element.style.top = `${y}px`;
-        document.body.appendChild(element);
-        setTimeout(() => element.remove(), duration);
     },
     
     snapToGrid: (x, y, gridSpacing) => {
@@ -1367,7 +1350,7 @@ class PatternGenerator {
 }
 
 // ====================================================================
-// WAVE POINT CLASS - SIMPLIFIED (NO WAVE TYPE)
+// WAVE POINT CLASS
 // ====================================================================
 class WavePoint {
     constructor(x, y, properties = {}) {
@@ -1382,7 +1365,6 @@ class WavePoint {
         this.phaseOffset = properties.phaseOffset || 0;
         this.creationIndex = properties.creationIndex || 0;
         
-        // Visual feedback properties for deletion zones
         this.inDeletionZone = false;
         this.deletionTimer = null;
     }
@@ -1414,7 +1396,7 @@ class WavePoint {
 }
 
 // ====================================================================
-// WAVE ENGINE CLASS - IMPROVED PHYSICS
+// WAVE ENGINE CLASS
 // ====================================================================
 class WaveEngine {
     constructor() {
@@ -1488,7 +1470,6 @@ class WaveEngine {
         });
     }
     
-    // SWITCHABLE PHYSICS: REALISTIC vs CREATIVE DECAY
     calculatePixel(x, y) {
         let totalWave = 0;
         
@@ -1500,16 +1481,12 @@ class WaveEngine {
             const k = (2 * Math.PI) / point.wavelength;
             const phase = k * dist - (point.speed * k) * age + point.phaseOffset;
             
-            // Only sine waves - simplified physics
             let waveValue = point.amplitude * Math.sin(phase);
             
-            // Apply decay based on realistic mode
             if (this.useRealisticDecay) {
-                // Proper 2D wave physics with geometric spreading
                 const geometricDecay = 1 / Math.sqrt(dist + 1);
                 waveValue *= geometricDecay;
             } else {
-                // Original exponential approach with user-controlled damping
                 const exponentialDecay = Math.exp(-dist * this.mediumDamping);
                 waveValue *= exponentialDecay;
             }
@@ -1595,7 +1572,7 @@ class WaveEngine {
 }
 
 // ====================================================================
-// RENDERER CLASS - REAL RENDERING
+// RENDERER CLASS
 // ====================================================================
 class Renderer {
     constructor(canvas) {
@@ -1716,6 +1693,17 @@ class Renderer {
             this.ctx.lineWidth = 2;
             this.ctx.beginPath();
             this.ctx.arc(point.x, point.y, hitRadius, 0, 2 * Math.PI);
+            this.ctx.stroke();
+        }
+        
+        // Draw edit mode indicator (second green circle)
+        if (point.selected && window.app && window.app.interactionManager && 
+            window.app.interactionManager.isEditMode && 
+            window.app.interactionManager.editModePoint === point) {
+            this.ctx.strokeStyle = '#00ff88';
+            this.ctx.lineWidth = 3;
+            this.ctx.beginPath();
+            this.ctx.arc(point.x, point.y, hitRadius + 10, 0, 2 * Math.PI);
             this.ctx.stroke();
         }
         
@@ -1842,13 +1830,13 @@ class InputController {
         this.handlers = new Map();
     }
     
-    registerSliderPair(sliderId, inputId, handler) {
-        const slider = document.getElementById(sliderId);
-        const input = document.getElementById(inputId);
+    registerSliderPair(sliderSelector, inputSelector, handler) {
+        const slider = document.querySelector(sliderSelector);
+        const input = document.querySelector(inputSelector);
         
         if (!slider || !input) return;
         
-        const fieldType = this.getFieldType(sliderId);
+        const fieldType = this.getFieldType(sliderSelector);
         
         slider.addEventListener('input', (e) => {
             const value = parseFloat(e.target.value);
@@ -1876,32 +1864,32 @@ class InputController {
         });
     }
     
-    getFieldType(id) {
+    getFieldType(selector) {
         const fieldMap = {
-            'pointAmplitude': 'amplitude',
-            'pointWavelength': 'wavelength',
-            'pointSpeed': 'speed',
-            'hue1Slider': 'hue1',
-            'hue2Slider': 'hue2',
-            'pointPhaseOffsetSlider': 'phaseOffset',
-            'dampingSlider': 'damping',
-            'performanceSlider': 'performance',
-            'patternCount': 'patternCount',
-            'patternScale': 'patternScale',
-            'timeMultiplierSlider': 'timeMultiplier'
+            '[data-slider="point-amplitude"]': 'amplitude',
+            '[data-slider="point-wavelength"]': 'wavelength',
+            '[data-slider="point-speed"]': 'speed',
+            '[data-slider="hue1"]': 'hue1',
+            '[data-slider="hue2"]': 'hue2',
+            '[data-slider="point-phase-offset"]': 'phaseOffset',
+            '[data-slider="damping"]': 'damping',
+            '[data-slider="performance"]': 'performance',
+            '[data-slider="pattern-count"]': 'patternCount',
+            '[data-slider="pattern-scale"]': 'patternScale',
+            '[data-slider="time-multiplier"]': 'timeMultiplier'
         };
         
-        return fieldMap[id] || id;
+        return fieldMap[selector] || selector;
     }
     
     formatDisplayValue(value, fieldType) {
         return Utils.formatInputValue(value, fieldType);
     }
     
-    updatePair(sliderId, inputId, value) {
-        const slider = document.getElementById(sliderId);
-        const input = document.getElementById(inputId);
-        const fieldType = this.getFieldType(sliderId);
+    updatePair(sliderSelector, inputSelector, value) {
+        const slider = document.querySelector(sliderSelector);
+        const input = document.querySelector(inputSelector);
+        const fieldType = this.getFieldType(sliderSelector);
         
         if (slider) slider.value = value;
         if (input) input.value = this.formatDisplayValue(value, fieldType);
@@ -1909,7 +1897,7 @@ class InputController {
 }
 
 // ====================================================================
-// BOTTOM SHEET CONTROLLER - UPDATED FOR 4 PANELS
+// BOTTOM SHEET CONTROLLER
 // ====================================================================
 class BottomSheetController {
     constructor() {
@@ -1921,13 +1909,20 @@ class BottomSheetController {
         this.dragStartY = 0;
         this.initialTransform = 0;
         
+        // Enhanced drag responsiveness
+        this.dragStartTime = 0;
+        this.lastDragY = 0;
+        this.dragVelocity = 0;
+        this.velocityThreshold = 0.5; // pixels per ms for velocity-based snapping
+        this.positionThreshold = 0.15; // 15% instead of 30% for easier snapping
+        
         this.elements = {
-            bottomSheet: document.getElementById('bottomSheet'),
-            sheetHandle: document.getElementById('sheetHandle'),
-            panelTitle: document.getElementById('panelTitleText'),
-            panelsContainer: document.getElementById('panelsContainer'),
-            panelNavigation: document.getElementById('panelNavigation'),
-            navSegments: document.querySelectorAll('.nav-segment')
+            bottomSheet: document.querySelector('[data-panel="main"]'),
+            sheetHandle: document.querySelector('[data-handle="control-panel"]'),
+            panelTitle: document.querySelector('[data-panel-title="text"]'),
+            panelsContainer: document.querySelector('[data-panels="container"]'),
+            panelNavigation: document.querySelector('[data-navigation="panels"]'),
+            navSegments: document.querySelectorAll('[data-panel-nav]')
         };
         
         this.setupEventListeners();
@@ -2009,10 +2004,7 @@ class BottomSheetController {
             const containerWidth = container.offsetWidth;
             const scrollLeft = index * containerWidth;
             
-            container.scrollTo({
-                left: scrollLeft,
-                behavior: 'smooth'
-            });
+            container.scrollLeft = scrollLeft;
             
             this.currentPanel = index;
             this.updateUI();
@@ -2035,7 +2027,6 @@ class BottomSheetController {
         const handle = this.elements.sheetHandle;
         const sheet = this.elements.bottomSheet;
         
-        // Handle click to toggle
         handle.addEventListener('click', (e) => {
             if (!this.isDraggingHandle) {
                 this.isExpanded ? this.collapse() : this.expand();
@@ -2094,7 +2085,6 @@ class BottomSheetController {
             this.initialTransform = 0;
         }
         
-        sheet.style.transition = 'none';
         Utils.haptic();
     }
     
@@ -2121,8 +2111,6 @@ class BottomSheetController {
         this.isDraggingHandle = false;
         const sheet = this.elements.bottomSheet;
         
-        sheet.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-        
         const style = window.getComputedStyle(sheet);
         const transform = style.transform;
         let currentY = 0;
@@ -2145,7 +2133,7 @@ class BottomSheetController {
     expand() {
         this.isExpanded = true;
         if (this.elements.bottomSheet) {
-            this.elements.bottomSheet.classList.add('expanded');
+            this.elements.bottomSheet.classList.add('is-expanded');
             this.elements.bottomSheet.style.transform = '';
         }
         Utils.haptic();
@@ -2154,7 +2142,7 @@ class BottomSheetController {
     collapse() {
         this.isExpanded = false;
         if (this.elements.bottomSheet) {
-            this.elements.bottomSheet.classList.remove('expanded');
+            this.elements.bottomSheet.classList.remove('is-expanded');
             this.elements.bottomSheet.style.transform = '';
         }
         Utils.haptic();
@@ -2166,7 +2154,7 @@ class BottomSheetController {
         }
         
         this.elements.navSegments.forEach((segment, index) => {
-            segment.classList.toggle('active', index === this.currentPanel);
+            segment.classList.toggle('is-active', index === this.currentPanel);
         });
     }
     
@@ -2176,7 +2164,7 @@ class BottomSheetController {
 }
 
 // ====================================================================
-// INTERACTION MANAGER - ENHANCED CANVAS TAP BEHAVIOR
+// INTERACTION MANAGER
 // ====================================================================
 class InteractionManager {
     constructor(canvas, uiController) {
@@ -2197,13 +2185,23 @@ class InteractionManager {
         this.doubleTapWindow = 300;
         this.doubleTapTolerance = 10;
         
-        this.indicator = document.getElementById('longPressIndicator');
+        this.indicator = document.querySelector('[data-indicator="long-press"]');
         this.deletionZones = {
-            top: document.getElementById('deletionTop'),
-            bottom: document.getElementById('deletionBottom'),
-            left: document.getElementById('deletionLeft'),
-            right: document.getElementById('deletionRight')
+            top: document.querySelector('[data-deletion="top"]'),
+            bottom: document.querySelector('[data-deletion="bottom"]'),
+            left: document.querySelector('[data-deletion="left"]'),
+            right: document.querySelector('[data-deletion="right"]')
         };
+        
+        // Zoom gesture state
+        this.isZooming = false;
+        this.lastPinchDistance = 0;
+        this.zoomSensitivity = 0.5;
+        
+        // Wavelength edit mode state
+        this.isEditMode = false;
+        this.editModePoint = null;
+        this.slowDoubleTapWindow = 800; // Longer window for edit mode activation
         
         this.setupEvents();
     }
@@ -2217,6 +2215,12 @@ class InteractionManager {
         this.canvas.addEventListener('mousemove', e => this.handleMove(e, e), options);
         this.canvas.addEventListener('mouseup', e => this.handleEnd(e), options);
         this.canvas.addEventListener('contextmenu', e => e.preventDefault());
+        
+        // Zoom gesture events
+        this.canvas.addEventListener('wheel', e => this.handleWheel(e), options);
+        this.canvas.addEventListener('touchstart', e => this.handleTouchStart(e), options);
+        this.canvas.addEventListener('touchmove', e => this.handleTouchMove(e), options);
+        this.canvas.addEventListener('touchend', e => this.handleTouchEnd(e), options);
     }
     
     getCoordinates(pointer) {
@@ -2238,9 +2242,30 @@ class InteractionManager {
         const hitPoint = this.ui.engine.findPointAt(coords.x, coords.y);
         const currentTime = performance.now();
         
-        if (hitPoint && this.isDoubleTap(coords, currentTime)) {
-            this.handleDoubleTap(hitPoint, coords);
+        if (this.isDoubleTap(coords, currentTime)) {
+            if (hitPoint) {
+                this.handleDoubleTap(hitPoint, coords);
+            } else {
+                this.handleEmptyCanvasDoubleTap(coords);
+            }
             return;
+        }
+        
+        // Check for slow double-tap (edit mode activation)
+        if (hitPoint && this.lastTapTime > 0) {
+            const timeDiff = currentTime - this.lastTapTime;
+            const distance = Utils.distance(coords.x, coords.y, this.lastTapPos.x, this.lastTapPos.y);
+            
+            if (timeDiff > this.doubleTapWindow && 
+                timeDiff < this.slowDoubleTapWindow && 
+                distance < this.doubleTapTolerance &&
+                hitPoint.id === this.ui.selectedPointId) {
+                
+                this.enterEditMode(hitPoint);
+                this.lastTapTime = 0;
+                this.lastTapPos = { x: 0, y: 0 };
+                return;
+            }
         }
         
         this.lastTapTime = currentTime;
@@ -2253,14 +2278,12 @@ class InteractionManager {
             this.canvas.style.cursor = 'grabbing';
         } else {
             this.startLongPress(coords.x, coords.y);
+            this.exitEditMode(); // Exit edit mode when tapping empty canvas
             
-            // ENHANCED CANVAS TAP BEHAVIOR: Check if bottom sheet is expanded
             if (this.ui.bottomSheet.isExpanded) {
-                // If expanded, collapse AND deselect
                 this.ui.bottomSheet.collapse();
                 this.ui.deselectAll();
             } else {
-                // If collapsed, just deselect
                 this.ui.deselectAll();
             }
         }
@@ -2343,7 +2366,8 @@ class InteractionManager {
         if (this.indicator) {
             this.indicator.style.left = `${x}px`;
             this.indicator.style.top = `${y}px`;
-            this.indicator.classList.add('active');
+            this.indicator.classList.add('is-active');
+            this.indicator.classList.remove('is-complete');
         }
         
         this.longPressTimer = setTimeout(() => {
@@ -2357,9 +2381,15 @@ class InteractionManager {
         Utils.haptic();
         
         if (this.indicator) {
-            this.indicator.classList.remove('active');
-            this.indicator.classList.add('complete');
-            setTimeout(() => this.indicator.classList.remove('complete'), 300);
+            this.indicator.classList.remove('is-active');
+            this.indicator.classList.add('is-complete');
+            
+            // Hide the indicator after a brief moment
+            setTimeout(() => {
+                if (this.indicator) {
+                    this.indicator.classList.remove('is-complete');
+                }
+            }, 200);
         }
         
         let finalX = x, finalY = y;
@@ -2382,14 +2412,14 @@ class InteractionManager {
         this.isLongPressing = false;
         
         if (this.indicator) {
-            this.indicator.classList.remove('active', 'complete');
+            this.indicator.classList.remove('is-active', 'is-complete');
         }
     }
     
     updateDeletionZoneVisuals(active) {
         Object.values(this.deletionZones).forEach(zone => {
             if (zone) {
-                zone.classList.toggle('active', active);
+                zone.classList.toggle('is-active', active);
             }
         });
     }
@@ -2440,7 +2470,117 @@ class InteractionManager {
         this.ui.selectPoint(point.id);
         this.ui.clonePoint();
         
-        Utils.showVisual(coords.x, coords.y, 'clone-flash');
+        this.lastTapTime = 0;
+        this.lastTapPos = { x: 0, y: 0 };
+    }
+    
+    // Zoom gesture handlers
+    handleWheel(event) {
+        // Only handle Ctrl + scroll wheel for wavelength adjustment in edit mode
+        if (!event.ctrlKey || !this.isEditMode || !this.editModePoint) return;
+        
+        event.preventDefault();
+        
+        // Scroll down = increase wavelength, scroll up = decrease wavelength
+        const delta = event.deltaY > 0 ? 1 : -1;
+        const change = delta * 5; // 5 units per scroll step
+        
+        this.adjustWavelength(this.editModePoint, change);
+    }
+    
+    handleTouchStart(event) {
+        if (event.touches.length === 2 && this.isEditMode && this.editModePoint) {
+            this.isZooming = true;
+            this.lastPinchDistance = this.getTouchDistance(event.touches[0], event.touches[1]);
+        }
+    }
+    
+    handleTouchMove(event) {
+        if (!this.isZooming || event.touches.length !== 2 || !this.isEditMode || !this.editModePoint) return;
+        
+        event.preventDefault();
+        
+        const currentDistance = this.getTouchDistance(event.touches[0], event.touches[1]);
+        const deltaDistance = currentDistance - this.lastPinchDistance;
+        
+        // Pinch out = increase wavelength, pinch in = decrease wavelength
+        const change = deltaDistance * this.zoomSensitivity;
+        
+        this.adjustWavelength(this.editModePoint, change);
+        this.lastPinchDistance = currentDistance;
+    }
+    
+    handleTouchEnd(event) {
+        if (event.touches.length < 2) {
+            this.isZooming = false;
+            this.lastPinchDistance = 0;
+            
+            // Exit edit mode when all touches are lifted
+            if (event.touches.length === 0 && this.isEditMode) {
+                this.exitEditMode();
+            }
+        }
+    }
+    
+    enterEditMode(point) {
+        this.isEditMode = true;
+        this.editModePoint = point;
+        Utils.haptic();
+        this.ui.animationManager.forceRender();
+        
+        // Listen for Ctrl key release
+        document.addEventListener('keyup', this.handleKeyUp);
+    }
+    
+    exitEditMode() {
+        if (!this.isEditMode) return;
+        
+        this.isEditMode = false;
+        this.editModePoint = null;
+        this.isZooming = false;
+        this.lastPinchDistance = 0;
+        this.ui.animationManager.forceRender();
+        
+        // Remove Ctrl key listener
+        document.removeEventListener('keyup', this.handleKeyUp);
+    }
+    
+    handleKeyUp = (event) => {
+        if (event.key === 'Control' && this.isEditMode) {
+            this.exitEditMode();
+        }
+    }
+    
+    getTouchDistance(touch1, touch2) {
+        const dx = touch2.clientX - touch1.clientX;
+        const dy = touch2.clientY - touch1.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+    
+    adjustWavelength(point, change) {
+        const newWavelength = Utils.clamp(
+            point.wavelength + change,
+            CONFIG.ranges.wavelength.min,
+            CONFIG.ranges.wavelength.max
+        );
+        
+        point.wavelength = newWavelength;
+        
+        // Update UI controls to reflect the change
+        this.ui.inputController.updatePair(
+            '[data-slider="point-wavelength"]',
+            '[data-input="point-wavelength"]',
+            newWavelength
+        );
+        
+        // Force immediate re-render to show wavelength change
+        this.ui.animationManager.forceRender();
+    }
+    
+    handleEmptyCanvasDoubleTap(coords) {
+        Utils.haptic();
+        
+        this.ui.toggleFullscreen();
         
         this.lastTapTime = 0;
         this.lastTapPos = { x: 0, y: 0 };
@@ -2448,7 +2588,7 @@ class InteractionManager {
 }
 
 // ====================================================================
-// UI CONTROLLER - UPDATED WITH SIMPLIFIED FUNCTIONALITY
+// UI CONTROLLER
 // ====================================================================
 class UIController {
     constructor(engine, animationManager, renderer) {
@@ -2457,8 +2597,10 @@ class UIController {
         this.renderer = renderer;
         this.selectedPointId = null;
         this.singleEditMode = false;
+        this.isFullscreen = false;
         this.bottomSheet = new BottomSheetController();
         this.inputController = new InputController();
+        this.interactionManager = null; // Will be set by WaveSimulation
         
         this.setupEventListeners();
         this.setupInputControls();
@@ -2469,41 +2611,35 @@ class UIController {
     
     setupEventListeners() {
         // Modal management
-        const welcomeStartBtn = document.getElementById('welcomeStartBtn');
-        const healthBackBtn = document.getElementById('healthBackBtn');
-        const healthContinueBtn = document.getElementById('healthContinueBtn');
-        const helpBtn = document.getElementById('helpBtn');
-        const helpCloseBtn = document.getElementById('helpCloseBtn');
-        const addBtn = document.getElementById('addBtn');
+        const welcomeStartBtn = document.querySelector('[data-modal-action="start"]');
+        const healthBackBtn = document.querySelector('[data-modal-action="back"]');
+        const healthContinueBtn = document.querySelector('[data-modal-action="continue"]');
+        const helpBtn = document.querySelector('[data-action="help"]');
+        const helpCloseBtn = document.querySelector('[data-modal-action="close"]');
+        const addBtn = document.querySelector('[data-action="add"]');
         
         if (welcomeStartBtn) welcomeStartBtn.addEventListener('click', () => this.showHealthWarning());
         if (healthBackBtn) healthBackBtn.addEventListener('click', () => this.showWelcome());
         if (healthContinueBtn) healthContinueBtn.addEventListener('click', () => this.startApp());
         if (helpBtn) helpBtn.addEventListener('click', () => this.showHelp());
         if (helpCloseBtn) helpCloseBtn.addEventListener('click', () => this.hideHelp());
-        if (addBtn) addBtn.addEventListener('click', () => this.createRandomPoint());
+        if (addBtn) addBtn.addEventListener('click', () => this.contextualAdd());
         
         // Control buttons
-        const clearBtn = document.getElementById('clearBtn');
-        const syncBtn = document.getElementById('syncBtn');
-        const showPointsToggle = document.getElementById('showPointsToggle');
-        const showGridToggle = document.getElementById('showGridToggle');
-        const generatePatternBtn = document.getElementById('generatePatternBtn');
-        const clonePointBtn = document.getElementById('clonePointBtn');
-        const deletePointBtn = document.getElementById('deletePointBtn');
-        const colorToggle = document.getElementById('colorToggle');
-        const realisticDecayToggle = document.getElementById('realisticDecayToggle');
-        const singleEditMode = document.getElementById('singleEditMode');
+        const clearBtn = document.querySelector('[data-action="clear"]');
+        const syncBtn = document.querySelector('[data-action="sync"]');
+        const showPointsToggle = document.querySelector('[data-toggle="show-points"]');
+        const showGridToggle = document.querySelector('[data-toggle="show-grid"]');
+        const generatePatternBtn = document.querySelector('[data-action="generate-pattern"]');
+        const colorToggle = document.querySelector('[data-toggle="color-mode"]');
+        const singleEditMode = document.querySelector('[data-checkbox="single-edit-mode"]');
         
-        if (clearBtn) clearBtn.addEventListener('click', () => this.clearAll());
+        if (clearBtn) clearBtn.addEventListener('click', () => this.contextualClear());
         if (syncBtn) syncBtn.addEventListener('click', () => this.syncPoints());
         if (showPointsToggle) showPointsToggle.addEventListener('click', () => this.toggleShowPoints());
         if (showGridToggle) showGridToggle.addEventListener('click', () => this.toggleShowGrid());
         if (generatePatternBtn) generatePatternBtn.addEventListener('click', () => this.generatePattern());
-        if (clonePointBtn) clonePointBtn.addEventListener('click', () => this.clonePoint());
-        if (deletePointBtn) deletePointBtn.addEventListener('click', () => this.deletePoint());
         if (colorToggle) colorToggle.addEventListener('click', () => this.toggleColorMode());
-        if (realisticDecayToggle) realisticDecayToggle.addEventListener('click', () => this.toggleRealisticDecay());
         if (singleEditMode) singleEditMode.addEventListener('change', (e) => this.setSingleEditMode(e.target.checked));
         
         // Keyboard shortcuts
@@ -2516,77 +2652,94 @@ class UIController {
         });
     }
     
+    // Context-sensitive button actions
+    contextualClear() {
+        if (this.selectedPointId) {
+            this.deletePoint();
+        } else {
+            this.clearAll();
+        }
+    }
+    
+    contextualAdd() {
+        if (this.selectedPointId) {
+            this.clonePoint();
+        } else {
+            this.createRandomPoint();
+        }
+    }
+    
     setupInputControls() {
         // Point property sliders
-        this.inputController.registerSliderPair('pointAmplitude', 'pointAmplitudeValue', 
+        this.inputController.registerSliderPair('[data-slider="point-amplitude"]', '[data-input="point-amplitude"]', 
             (v) => this.updatePointProperty('amplitude', parseInt(v)));
-        this.inputController.registerSliderPair('pointWavelength', 'pointWavelengthValue', 
+        this.inputController.registerSliderPair('[data-slider="point-wavelength"]', '[data-input="point-wavelength"]', 
             (v) => this.updatePointProperty('wavelength', parseInt(v)));
-        this.inputController.registerSliderPair('pointSpeed', 'pointSpeedValue', 
+        this.inputController.registerSliderPair('[data-slider="point-speed"]', '[data-input="point-speed"]', 
             (v) => this.updatePointProperty('speed', parseFloat(v)));
         
         // Color sliders
-        this.inputController.registerSliderPair('hue1Slider', 'hue1Value', (v) => {
+        this.inputController.registerSliderPair('[data-slider="hue1"]', '[data-input="hue1"]', (v) => {
             this.engine.hue1 = parseInt(v);
             this.updateColorPreview();
             this.animationManager.forceRender();
         });
-        this.inputController.registerSliderPair('hue2Slider', 'hue2Value', (v) => {
+        this.inputController.registerSliderPair('[data-slider="hue2"]', '[data-input="hue2"]', (v) => {
             this.engine.hue2 = parseInt(v);
             this.updateColorPreview();
             this.animationManager.forceRender();
         });
         
         // Medium controls
-        this.inputController.registerSliderPair('timeMultiplierSlider', 'timeMultiplierValue', (v) => {
+        this.inputController.registerSliderPair('[data-slider="time-multiplier"]', '[data-input="time-multiplier"]', (v) => {
             this.engine.setTimeMultiplier(parseFloat(v));
         });
-        this.inputController.registerSliderPair('pointPhaseOffsetSlider', 'pointPhaseOffsetValue', (v) => {
+        this.inputController.registerSliderPair('[data-slider="point-phase-offset"]', '[data-input="point-phase-offset"]', (v) => {
             this.engine.setPointPhaseOffset(parseFloat(v) * Math.PI);
         });
-        this.inputController.registerSliderPair('dampingSlider', 'dampingValue', (v) => {
+        this.inputController.registerSliderPair('[data-slider="damping"]', '[data-input="damping"]', (v) => {
             this.engine.setDamping(parseFloat(v));
         });
-        this.inputController.registerSliderPair('performanceSlider', 'performanceValue', (v) => {
+        this.inputController.registerSliderPair('[data-slider="performance"]', '[data-input="performance"]', (v) => {
             this.setPerformanceLevel(parseInt(v));
         });
         
         // Pattern generator sliders
-        this.inputController.registerSliderPair('patternCount', 'patternCountValue', () => {});
-        this.inputController.registerSliderPair('patternScale', 'patternScaleValue', () => {});
+        this.inputController.registerSliderPair('[data-slider="pattern-count"]', '[data-input="pattern-count"]', () => {});
+        this.inputController.registerSliderPair('[data-slider="pattern-scale"]', '[data-input="pattern-scale"]', () => {});
         
         this.initializeInputDisplays();
     }
     
     // Modal methods
     showWelcome() {
-        const welcomeOverlay = document.getElementById('welcomeOverlay');
-        const healthWarningOverlay = document.getElementById('healthWarningOverlay');
-        if (welcomeOverlay) welcomeOverlay.style.display = 'flex';
-        if (healthWarningOverlay) healthWarningOverlay.style.display = 'none';
+        const welcomeModal = document.querySelector('[data-modal="welcome"]');
+        const healthWarningModal = document.querySelector('[data-modal="health-warning"]');
+        if (welcomeModal) welcomeModal.style.display = 'flex';
+        if (healthWarningModal) healthWarningModal.style.display = 'none';
     }
     
     showHealthWarning() {
-        const welcomeOverlay = document.getElementById('welcomeOverlay');
-        const healthWarningOverlay = document.getElementById('healthWarningOverlay');
-        if (welcomeOverlay) welcomeOverlay.style.display = 'none';
-        if (healthWarningOverlay) healthWarningOverlay.style.display = 'flex';
+        const welcomeModal = document.querySelector('[data-modal="welcome"]');
+        const healthWarningModal = document.querySelector('[data-modal="health-warning"]');
+        if (welcomeModal) welcomeModal.style.display = 'none';
+        if (healthWarningModal) healthWarningModal.style.display = 'flex';
     }
     
     startApp() {
-        const healthWarningOverlay = document.getElementById('healthWarningOverlay');
-        if (healthWarningOverlay) healthWarningOverlay.style.display = 'none';
+        const healthWarningModal = document.querySelector('[data-modal="health-warning"]');
+        if (healthWarningModal) healthWarningModal.style.display = 'none';
         this.createStarterPoint();
     }
     
     showHelp() {
-        const helpOverlay = document.getElementById('helpOverlay');
-        if (helpOverlay) helpOverlay.style.display = 'flex';
+        const helpModal = document.querySelector('[data-modal="help"]');
+        if (helpModal) helpModal.style.display = 'flex';
     }
     
     hideHelp() {
-        const helpOverlay = document.getElementById('helpOverlay');
-        if (helpOverlay) helpOverlay.style.display = 'none';
+        const helpModal = document.querySelector('[data-modal="help"]');
+        if (helpModal) helpModal.style.display = 'none';
     }
     
     // Point management
@@ -2596,15 +2749,19 @@ class UIController {
             if (prevPoint) prevPoint.selected = false;
         }
         
+        // Exit edit mode when selecting a different point
+        if (this.selectedPointId !== id) {
+            this.interactionManager.exitEditMode();
+        }
+        
         this.selectedPointId = id;
         const point = this.engine.getPoint(id);
         if (point) {
             point.selected = true;
         }
         
-        // Auto-enable single edit mode when point is selected
         this.singleEditMode = true;
-        const singleEditModeEl = document.getElementById('singleEditMode');
+        const singleEditModeEl = document.querySelector('[data-checkbox="single-edit-mode"]');
         if (singleEditModeEl) singleEditModeEl.checked = true;
         
         this.updatePointPropertiesUI();
@@ -2617,9 +2774,13 @@ class UIController {
             const point = this.engine.getPoint(this.selectedPointId);
             if (point) point.selected = false;
         }
+        
+        // Exit edit mode when deselecting
+        this.interactionManager.exitEditMode();
+        
         this.selectedPointId = null;
         this.singleEditMode = false;
-        const singleEditModeEl = document.getElementById('singleEditMode');
+        const singleEditModeEl = document.querySelector('[data-checkbox="single-edit-mode"]');
         if (singleEditModeEl) singleEditModeEl.checked = false;
         this.updatePointPropertiesUI();
         this.updatePointsUI();
@@ -2635,16 +2796,16 @@ class UIController {
         this.engine.clearAll();
         this.selectedPointId = null;
         this.singleEditMode = false;
-        const singleEditModeEl = document.getElementById('singleEditMode');
+        const singleEditModeEl = document.querySelector('[data-checkbox="single-edit-mode"]');
         if (singleEditModeEl) singleEditModeEl.checked = false;
         this.animationManager.stop();
         this.animationManager.setShowPoints(false);
         this.animationManager.setShowGrid(false);
-        this.animationManager.setSelectedPoint(null); // Clear visual selection
+        this.animationManager.setSelectedPoint(null);
         this.updatePointsUI();
         this.updatePointPropertiesUI();
-        this.updateButton('showPointsToggle', false);
-        this.updateButton('showGridToggle', false);
+        this.updateDisplayToggle('[data-toggle="show-points"]', false);
+        this.updateDisplayToggle('[data-toggle="show-grid"]', false);
         this.animationManager.forceRender();
     }
     
@@ -2663,7 +2824,6 @@ class UIController {
         const bounds = { width: window.innerWidth, height: window.innerHeight };
         const pos = PatternGenerator.findRandomPosition(this.engine.getAllPoints(), bounds);
         const point = this.addPoint(pos.x, pos.y);
-        // REMOVED: auto-expand behavior
     }
     
     addPoint(x, y, properties = {}) {
@@ -2704,7 +2864,6 @@ class UIController {
         if (clone) {
             clone.startTime = this.engine.time;
             this.selectPoint(clone.id);
-            Utils.showVisual(finalX, finalY, 'clone-flash');
             
             if (!this.animationManager.isAnimating) {
                 this.animationManager.start();
@@ -2755,7 +2914,7 @@ class UIController {
         if (this.engine.points.size === 0) return;
         
         this.engine.syncPoints();
-        this.inputController.updatePair('pointPhaseOffsetSlider', 'pointPhaseOffsetValue', 0);
+        this.inputController.updatePair('[data-slider="point-phase-offset"]', '[data-input="point-phase-offset"]', 0);
         
         if (!this.animationManager.isAnimating) {
             this.animationManager.start();
@@ -2767,33 +2926,25 @@ class UIController {
     toggleShowPoints() {
         const newState = !this.animationManager.showPoints;
         this.animationManager.setShowPoints(newState);
-        this.updateButton('showPointsToggle', newState);
+        this.updateDisplayToggle('[data-toggle="show-points"]', newState);
     }
     
     toggleShowGrid() {
         const newState = !this.animationManager.showGrid;
         this.animationManager.setShowGrid(newState);
-        this.updateButton('showGridToggle', newState);
+        this.updateDisplayToggle('[data-toggle="show-grid"]', newState);
     }
     
     toggleColorMode() {
         const newState = !this.engine.useColor;
         this.engine.setColorMode(newState);
-        this.updateButton('colorToggle', newState);
+        this.updateButton('[data-toggle="color-mode"]', newState);
         this.updateColorControls();
         this.animationManager.forceRender();
     }
     
-    toggleRealisticDecay() {
-        const newState = !this.engine.useRealisticDecay;
-        this.engine.setRealisticDecay(newState);
-        this.updateButton('realisticDecayToggle', newState);
-        this.updateDampingControls();
-        this.animationManager.forceRender();
-    }
-    
     updateColorPreview() {
-        const preview = document.getElementById('gradientPreview');
+        const preview = document.querySelector('[data-preview="gradient"]');
         if (preview) {
             preview.style.background = `linear-gradient(to right, hsl(${this.engine.hue1}, 70%, 50%), hsl(${this.engine.hue2}, 70%, 50%))`;
         }
@@ -2822,20 +2973,30 @@ class UIController {
     }
     
     // UI update methods
-    updateButton(elementId, isActive, activeText = null, inactiveText = null) {
-        const element = document.getElementById(elementId);
+    updateButton(selector, isActive, activeText = null, inactiveText = null) {
+        const element = document.querySelector(selector);
         if (!element) return;
         
-        element.classList.toggle('active', isActive);
+        element.classList.toggle('is-active', isActive);
         if (activeText && inactiveText) {
             element.textContent = isActive ? activeText : inactiveText;
         }
     }
     
+    updateDisplayToggle(selector, isActive) {
+        const element = document.querySelector(selector);
+        if (!element) return;
+        
+        const miniToggle = element.querySelector('.mini-toggle');
+        if (miniToggle) {
+            miniToggle.classList.toggle('is-active', isActive);
+        }
+    }
+    
     updateColorControls() {
-        const controls = ['colorControls', 'colorControls2', 'colorPreview'];
-        controls.forEach(id => {
-            const element = document.getElementById(id);
+        const controls = ['[data-color-controls="minima"]', '[data-color-controls="maxima"]', '[data-color-controls="preview"]'];
+        controls.forEach(selector => {
+            const element = document.querySelector(selector);
             if (element) element.style.display = this.engine.useColor ? 'block' : 'none';
         });
         
@@ -2844,76 +3005,49 @@ class UIController {
         }
     }
     
-    updateDampingControls() {
-        const dampingControls = document.getElementById('dampingControls');
-        if (dampingControls) {
-            dampingControls.style.display = this.engine.useRealisticDecay ? 'none' : 'block';
-        }
-    }
-    
     updatePointsUI() {
-        const count = this.engine.points.size;
-        const stats = document.getElementById('stats');
-        if (stats) {
-            stats.textContent = `Points: ${count} / ${CONFIG.maxPoints}`;
-        }
-        
-        const performanceInfo = document.getElementById('performanceInfo');
-        if (performanceInfo) {
-            const info = this.renderer.getPerformanceInfo();
-            if (count === 0) {
-                performanceInfo.textContent = 'Ready to create waves';
-            } else {
-                performanceInfo.textContent = `${info.resolution} • ${this.animationManager.fps} FPS`;
-            }
-        }
+        // Points count and performance stats no longer displayed
+        // All point information now managed through other UI elements
     }
     
     updatePointPropertiesUI() {
         const selectedPoint = this.getSelectedPoint();
         const allPoints = this.engine.getAllPoints();
         
-        const editModeContainer = document.getElementById('editModeContainer');
-        const selectedPointInfo = document.getElementById('selectedPointInfo');
-        const pointActions = document.getElementById('pointActions');
-        const selectedPointId = document.getElementById('selectedPointId');
+        const editModeContainer = document.querySelector('[data-edit-mode="container"]');
+        const selectedPointInfo = document.querySelector('[data-selected-point="info"]');
+        const selectedPointId = document.querySelector('[data-selected-point="id"]');
         
         if (selectedPoint) {
             if (editModeContainer) editModeContainer.style.display = 'block';
             if (selectedPointInfo) selectedPointInfo.style.display = 'block';
-            if (pointActions) pointActions.style.display = 'block';
             if (selectedPointId) selectedPointId.textContent = selectedPoint.getDisplayName();
         } else {
             if (editModeContainer) editModeContainer.style.display = 'none';
             if (selectedPointInfo) selectedPointInfo.style.display = 'none';
-            if (pointActions) pointActions.style.display = 'none';
         }
         
         if (allPoints.length === 0) {
-            this.inputController.updatePair('pointAmplitude', 'pointAmplitudeValue', CONFIG.defaults.amplitude);
-            this.inputController.updatePair('pointWavelength', 'pointWavelengthValue', CONFIG.defaults.wavelength);
-            this.inputController.updatePair('pointSpeed', 'pointSpeedValue', CONFIG.defaults.speed);
+            this.inputController.updatePair('[data-slider="point-amplitude"]', '[data-input="point-amplitude"]', CONFIG.defaults.amplitude);
+            this.inputController.updatePair('[data-slider="point-wavelength"]', '[data-input="point-wavelength"]', CONFIG.defaults.wavelength);
+            this.inputController.updatePair('[data-slider="point-speed"]', '[data-input="point-speed"]', CONFIG.defaults.speed);
         } else if (this.singleEditMode && selectedPoint) {
-            this.inputController.updatePair('pointAmplitude', 'pointAmplitudeValue', selectedPoint.amplitude);
-            this.inputController.updatePair('pointWavelength', 'pointWavelengthValue', selectedPoint.wavelength);
-            this.inputController.updatePair('pointSpeed', 'pointSpeedValue', selectedPoint.speed);
+            this.inputController.updatePair('[data-slider="point-amplitude"]', '[data-input="point-amplitude"]', selectedPoint.amplitude);
+            this.inputController.updatePair('[data-slider="point-wavelength"]', '[data-input="point-wavelength"]', selectedPoint.wavelength);
+            this.inputController.updatePair('[data-slider="point-speed"]', '[data-input="point-speed"]', selectedPoint.speed);
         } else {
             const avgAmplitude = Math.round(allPoints.reduce((sum, p) => sum + p.amplitude, 0) / allPoints.length);
             const avgWavelength = Math.round(allPoints.reduce((sum, p) => sum + p.wavelength, 0) / allPoints.length);
             const avgSpeed = allPoints.reduce((sum, p) => sum + p.speed, 0) / allPoints.length;
             
-            this.inputController.updatePair('pointAmplitude', 'pointAmplitudeValue', avgAmplitude);
-            this.inputController.updatePair('pointWavelength', 'pointWavelengthValue', avgWavelength);
-            this.inputController.updatePair('pointSpeed', 'pointSpeedValue', avgSpeed);
+            this.inputController.updatePair('[data-slider="point-amplitude"]', '[data-input="point-amplitude"]', avgAmplitude);
+            this.inputController.updatePair('[data-slider="point-wavelength"]', '[data-input="point-wavelength"]', avgWavelength);
+            this.inputController.updatePair('[data-slider="point-speed"]', '[data-input="point-speed"]', avgSpeed);
         }
     }
     
     updatePerformanceInfo() {
-        const info = this.renderer.getPerformanceInfo();
-        const performanceInfo = document.getElementById('performanceInfo');
-        if (performanceInfo && this.engine.points.size > 0) {
-            performanceInfo.textContent = `${info.resolution} • ${this.animationManager.fps} FPS`;
-        }
+        // Performance info no longer displayed in UI
     }
     
     setSingleEditMode(enabled) {
@@ -2921,40 +3055,58 @@ class UIController {
         this.updatePointPropertiesUI();
     }
     
+    // Fullscreen Mode Methods
+    toggleFullscreen() {
+        this.isFullscreen = !this.isFullscreen;
+        document.body.classList.toggle('fullscreen-mode', this.isFullscreen);
+        
+        if (this.isFullscreen) {
+            this.bottomSheet.collapse();
+        }
+        
+        Utils.haptic();
+        console.log(this.isFullscreen ? 'Entered fullscreen mode' : 'Exited fullscreen mode');
+    }
+    
+    enterFullscreen() {
+        if (!this.isFullscreen) {
+            this.toggleFullscreen();
+        }
+    }
+    
+    exitFullscreen() {
+        if (this.isFullscreen) {
+            this.toggleFullscreen();
+        }
+    }
+    
     initializeToggles() {
-        // Initialize realistic decay toggle (default OFF)
-        this.updateButton('realisticDecayToggle', false);
-        this.updateDampingControls();
-        
-        // Initialize color toggle (default OFF)
-        this.updateButton('colorToggle', false);
+        this.updateButton('[data-toggle="color-mode"]', false);
         this.updateColorControls();
-        
-        // Initialize other toggles
-        this.updateButton('showPointsToggle', false);
-        this.updateButton('showGridToggle', false);
+        this.updateDisplayToggle('[data-toggle="show-points"]', false);
+        this.updateDisplayToggle('[data-toggle="show-grid"]', false);
     }
     
     initializeInputDisplays() {
         const sliderPairs = [
-            ['pointAmplitude', 'pointAmplitudeValue'],
-            ['pointWavelength', 'pointWavelengthValue'],
-            ['pointSpeed', 'pointSpeedValue'],
-            ['hue1Slider', 'hue1Value'],
-            ['hue2Slider', 'hue2Value'],
-            ['timeMultiplierSlider', 'timeMultiplierValue'],
-            ['pointPhaseOffsetSlider', 'pointPhaseOffsetValue'],
-            ['dampingSlider', 'dampingValue'],
-            ['performanceSlider', 'performanceValue'],
-            ['patternCount', 'patternCountValue'],
-            ['patternScale', 'patternScaleValue']
+            ['[data-slider="point-amplitude"]', '[data-input="point-amplitude"]'],
+            ['[data-slider="point-wavelength"]', '[data-input="point-wavelength"]'],
+            ['[data-slider="point-speed"]', '[data-input="point-speed"]'],
+            ['[data-slider="hue1"]', '[data-input="hue1"]'],
+            ['[data-slider="hue2"]', '[data-input="hue2"]'],
+            ['[data-slider="time-multiplier"]', '[data-input="time-multiplier"]'],
+            ['[data-slider="point-phase-offset"]', '[data-input="point-phase-offset"]'],
+            ['[data-slider="damping"]', '[data-input="damping"]'],
+            ['[data-slider="performance"]', '[data-input="performance"]'],
+            ['[data-slider="pattern-count"]', '[data-input="pattern-count"]'],
+            ['[data-slider="pattern-scale"]', '[data-input="pattern-scale"]']
         ];
         
-        sliderPairs.forEach(([sliderId, inputId]) => {
-            const slider = document.getElementById(sliderId);
-            const input = document.getElementById(inputId);
+        sliderPairs.forEach(([sliderSelector, inputSelector]) => {
+            const slider = document.querySelector(sliderSelector);
+            const input = document.querySelector(inputSelector);
             if (slider && input) {
-                const fieldType = this.inputController.getFieldType(sliderId);
+                const fieldType = this.inputController.getFieldType(sliderSelector);
                 const value = parseFloat(slider.value);
                 input.value = Utils.formatInputValue(value, fieldType);
             }
@@ -2964,9 +3116,9 @@ class UIController {
     }
     
     generatePattern() {
-        const type = document.getElementById('patternType').value;
-        const count = parseInt(document.getElementById('patternCount').value);
-        const scale = parseFloat(document.getElementById('patternScale').value);
+        const type = document.querySelector('[data-select="pattern-type"]').value;
+        const count = parseInt(document.querySelector('[data-slider="pattern-count"]').value);
+        const scale = parseFloat(document.querySelector('[data-slider="pattern-scale"]').value);
         
         const currentCount = this.engine.points.size;
         const availableSlots = CONFIG.maxPoints - currentCount;
@@ -3003,7 +3155,7 @@ class UIController {
         if (firstNewPoint) {
             this.selectPoint(firstNewPoint.id);
             this.animationManager.setShowPoints(true);
-            this.updateButton('showPointsToggle', true);
+            this.updateButton('[data-toggle="show-points"]', true);
             if (!this.animationManager.isAnimating) {
                 this.animationManager.start();
             }
@@ -3019,7 +3171,7 @@ class UIController {
 // ====================================================================
 class WaveSimulation {
     constructor() {
-        this.canvas = document.getElementById('canvas');
+        this.canvas = document.querySelector('[data-canvas="main"]');
         
         this.engine = new WaveEngine();
         this.renderer = new Renderer(this.canvas);
@@ -3027,14 +3179,16 @@ class WaveSimulation {
         this.uiController = new UIController(this.engine, this.animationManager, this.renderer);
         this.interactionManager = new InteractionManager(this.canvas, this.uiController);
         
+        // Set up cross-references
+        this.uiController.interactionManager = this.interactionManager;
+        
         window.app = this;
         
-        console.log('Wave simulation initialized - UX improvements implemented');
-        console.log('- Enhanced canvas tap behavior for bottom sheet control');
-        console.log('- Simplified sine-wave only physics with geometric decay');
-        console.log('- Reduced bottom sheet height for better canvas visibility');
-        console.log('- 4-panel navigation (removed Point List panel)');
-        console.log('- Removed auto-expand behavior');
+        console.log('Wave simulation initialized - Minimal version');
+        console.log('- Removed all visual polish and animations');
+        console.log('- Preserved complete wave physics functionality');
+        console.log('- Clean, fast, accessible interface');
+        console.log('- Wavelength edit mode: slow double-tap to enter, zoom gestures to adjust');
     }
 }
 
@@ -3050,7 +3204,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="display: flex; align-items: center; justify-content: center; height: 100vh; color: white; text-align: center; font-family: monospace;">
                 <div>
                     <h2>Wave Simulation Error</h2>
-                    <p>Failed to initialize improved wave interface</p>
+                    <p>Failed to initialize minimal wave interface</p>
                     <p style="font-size: 12px; opacity: 0.7;">Check console for details</p>
                 </div>
             </div>
