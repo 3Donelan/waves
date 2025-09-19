@@ -37,16 +37,6 @@ Users can create, edit, and animate wave sources, adjust medium properties, and 
    * Edit source points manually.
 4. Clear or sync the simulation at any time using the floating utility buttons.
 
-## Project Structure
-
-```
-.
-├─ index.html        # Main application
-├─ css/              # Styling and theme variables
-├─ js/               # Engine, UI controller, and animation logic
-└─ assets/           # Icons or optional resources
-```
-
 ## Technical Notes
 
 * Wave computation is handled in `WaveEngine`, which calculates pixel values using either exponential or geometric decay.
